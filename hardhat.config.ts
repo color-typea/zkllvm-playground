@@ -1,0 +1,27 @@
+import { HardhatUserConfig } from "hardhat/config";
+import "@nomicfoundation/hardhat-toolbox";
+import '@nomicfoundation/hardhat-ethers';
+import 'hardhat-deploy';
+import 'hardhat-deploy-ethers';
+
+const config: HardhatUserConfig = {
+  solidity: {
+    version: "0.8.19",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 10,
+      },
+    },
+  },
+  namedAccounts: {
+    deployer: 0,
+  },
+  networks: {
+    hardhat: {
+        blockGasLimit: 50000000000
+    },
+}
+};
+
+export default config;

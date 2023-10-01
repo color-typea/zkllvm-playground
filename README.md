@@ -11,4 +11,12 @@ Alternatively, if those executables are available elsewhere, you can adjust corr
 ## Installation
 
 * Install python3, node, npm, and npx.
-* `make create-env` should do the trick
+* `make create-env` should do the rest
+
+## What to do
+
+Most of the operations are captured as Makefile commands. A few most relevant ones
+
+* `make test` - does everything and runs tests.
+* `make prepare-env` - generates all artifacts (incl. circuit statement) and deploys all the contracts. Needs hardhat node running (`npx hardhat node`) separately.
+* `make prepare-artifacts` - generates all artifacts: compiles, assigns and transpiles the circuit, generates CircuitParams.sol and circuit statement, rewrites gates to use installed evm-placeholder-verifier and moves them to `contracts/gates`.

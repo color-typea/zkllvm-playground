@@ -109,61 +109,61 @@ export class ProofGeneratorCLIProofProducer {
         return Buffer.from(rawData.slice(2), 'hex');
     }
 
-    generateProof(
-        proofInput: CircuitInput,
-        proofFileName: string = DEFAULT_PROOF
-    ): Promise<Buffer> {
-        const file = path.join(OUTPUT_DIR, 'gates/proof.bin');
-        return new Promise<Buffer>((resolve, reject) => {
-            fs.readFile(file, 'utf8', (err, data) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(this.readProofFile(data));
-                }
-            });
-        });
-    }
-    
     // generateProof(
     //     proofInput: CircuitInput,
     //     proofFileName: string = DEFAULT_PROOF
     // ): Promise<Buffer> {
+    //     const file = path.join(OUTPUT_DIR, 'gates/proof.bin');
     //     return new Promise<Buffer>((resolve, reject) => {
-    //         ProofGeneratorCLIProofProducer.LOGGER.info('Invoking proof producer');
-
-    //         const input = proofInput.serializeFullForProofGen();
-
-    //         // const input_file = tmp.fileSync();
-    //         // const publicInputFile = input_file.name;
-    //         const publicInputFile = path.join(OUTPUT_DIR, "public_input.json");
-    //         fs.writeFileSync(publicInputFile, JSON.stringify(input));
-
-    //         const args = this.genRunArgs(publicInputFile, proofFileName);
-    //         // ProofGeneratorCLIProofProducer.LOGGER.info("Running proof generator", args);
-    //         const cmd = args.join(' ');
-    //         const process = childProcess.spawn(cmd, {
-    //             shell: true,
-    //             stdio: 'inherit',
-    //         });
-
-    //         process.on('error', (err) => {
-    //             reject(err);
-    //         });
-
-    //         process.on('close', (code) => {
-    //             if (code === 0) {
-    //                 fs.readFile(proofFileName, 'utf8', (err, data) => {
-    //                     if (err) {
-    //                         reject(err);
-    //                     } else {
-    //                         resolve(this.readProofFile(data));
-    //                     }
-    //                 });
+    //         fs.readFile(file, 'utf8', (err, data) => {
+    //             if (err) {
+    //                 reject(err);
     //             } else {
-    //                 reject(new Error(`Failed to run proof generator - retcode ${code}`));
+    //                 resolve(this.readProofFile(data));
     //             }
     //         });
     //     });
     // }
+    
+    generateProof(
+        proofInput: CircuitInput,
+        proofFileName: string = DEFAULT_PROOF
+    ): Promise<Buffer> {
+        return new Promise<Buffer>((resolve, reject) => {
+            ProofGeneratorCLIProofProducer.LOGGER.info('Invoking proof producer');
+
+            const input = proofInput.serializeFullForProofGen();
+
+            // const input_file = tmp.fileSync();
+            // const publicInputFile = input_file.name;
+            const publicInputFile = path.join(OUTPUT_DIR, "public_input.json");
+            fs.writeFileSync(publicInputFile, JSON.stringify(input));
+
+            const args = this.genRunArgs(publicInputFile, proofFileName);
+            // ProofGeneratorCLIProofProducer.LOGGER.info("Running proof generator", args);
+            const cmd = args.join(' ');
+            const process = childProcess.spawn(cmd, {
+                shell: true,
+                stdio: 'inherit',
+            });
+
+            process.on('error', (err) => {
+                reject(err);
+            });
+
+            process.on('close', (code) => {
+                if (code === 0) {
+                    fs.readFile(proofFileName, 'utf8', (err, data) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(this.readProofFile(data));
+                        }
+                    });
+                } else {
+                    reject(new Error(`Failed to run proof generator - retcode ${code}`));
+                }
+            });
+        });
+    }
 }

@@ -20,3 +20,5 @@ Most of the operations are captured as Makefile commands. A few most relevant on
 * `make test` - does everything and runs tests.
 * `make prepare-env` - generates all artifacts (incl. circuit statement) and deploys all the contracts. Needs hardhat node running (`npx hardhat node`) separately.
 * `make prepare-artifacts` - generates all artifacts: compiles, assigns and transpiles the circuit, generates CircuitParams.sol and circuit statement, rewrites gates to use installed evm-placeholder-verifier and moves them to `contracts/gates`.
+
+**Note:** Do not run tests in parallel - proof-generator inputs and outputs are written to the same location (`output/public_input.json` and `output/proof.bin`), running in parallel will overwrite them and lead to unexpected behavior. This is easy to fix though (write to temp files).

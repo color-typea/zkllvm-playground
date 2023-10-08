@@ -12,3 +12,7 @@ artifacts
 build
 output
 .env
+auth.json
+
+.idea
+.vscode

@@ -1,0 +1,10 @@
+{
+    "name": "colorcode_test_circuit_v0.1",
+    "description": "Test circuit",
+    "url": "https://github.com/color-typea/zkllvm-playground/blob/main/circuit/circuit.cpp",
+    "input_description": "See example in https://github.com/color-typea/zkllvm-playground/blob/main/circuit/circuit.inp",
+    "definition": {
+        "verification_key": "verification_key",
+        "proving_key": "proving_key"
+    }
+}

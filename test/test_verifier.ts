@@ -9,7 +9,7 @@ async function runProducer(circuit_input: CircuitInput): Promise<Buffer> {
     return proofProducer.generateProof(circuit_input);
 }
 
-async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buffer): Promise<bool> {
+async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buffer): Promise<boolean> {
     const report = { sum: input.sum }; // Replace with your data
     const proof = {
         public_input: input.serializePublicForContract(),

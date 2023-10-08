@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as childProcess from 'child_process';
-import { Readable } from 'stream';
 import * as tmp from 'tmp';
 
 const CUR_DIR = __dirname;
@@ -11,9 +10,7 @@ const OUTPUT_DIR = path.join(PROJECT_DIR, 'output');
 
 const PROOF_GENERATOR = path.join(PROJECT_DIR, '../proof-market-toolchain/build/bin/proof-generator', 'proof-generator');
 
-// const DEFAULT_INPUT = path.join(OUTPUT_DIR, 'circuit_input.json');
-const DEFAULT_STATEMENT = path.join(OUTPUT_DIR, 'circuit.json');
-const DEFAULT_PROOF = path.join(OUTPUT_DIR, 'proof.bin');
+const DEFAULT_STATEMENT = path.join(OUTPUT_DIR, 'proof-requester', 'circuit.json');
 
 interface HashType {
     vector: { field: string }[];
@@ -124,22 +121,33 @@ export class ProofGeneratorCLIProofProducer {
     //         });
     //     });
     // }
+
+    _createTempFile(prefix: string, postfix: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            tmp.file({ prefix, postfix}, (err, path, fd) => {
+                if (err) {
+                    reject(err);
+                }
+                resolve(path);
+            });
+        });
+    }
     
     generateProof(
         proofInput: CircuitInput,
-        proofFileName: string = DEFAULT_PROOF
+        inputFileName?: string,
+        proofFileName?: string
     ): Promise<Buffer> {
-        return new Promise<Buffer>((resolve, reject) => {
+        return new Promise<Buffer>(async (resolve, reject) => {
             ProofGeneratorCLIProofProducer.LOGGER.info('Invoking proof producer');
 
+            const inputFile = inputFileName ?? (await this._createTempFile('input', 'json'));
+            const proofFile = proofFileName ?? (await this._createTempFile('input', 'json'));
+
             const input = proofInput.serializeFullForProofGen();
+            fs.writeFileSync(inputFile, JSON.stringify(input));
 
-            // const input_file = tmp.fileSync();
-            // const publicInputFile = input_file.name;
-            const publicInputFile = path.join(OUTPUT_DIR, "public_input.json");
-            fs.writeFileSync(publicInputFile, JSON.stringify(input));
-
-            const args = this.genRunArgs(publicInputFile, proofFileName);
+            const args = this.genRunArgs(inputFile, proofFile);
             // ProofGeneratorCLIProofProducer.LOGGER.info("Running proof generator", args);
             const cmd = args.join(' ');
             const process = childProcess.spawn(cmd, {
@@ -153,7 +161,7 @@ export class ProofGeneratorCLIProofProducer {
 
             process.on('close', (code) => {
                 if (code === 0) {
-                    fs.readFile(proofFileName, 'utf8', (err, data) => {
+                    fs.readFile(proofFile, 'utf8', (err, data) => {
                         if (err) {
                             reject(err);
                         } else {

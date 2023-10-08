@@ -31,9 +31,9 @@ library CircuitParams {
     internal pure returns (uint256[4] memory) {
         uint256[4] memory arithmetization_params = [
             uint256(15), 
+            uint256(1), 
             uint256(5), 
-            uint256(5), 
-            uint256(30)
+            uint256(15)
         ];
         return (arithmetization_params);
     }
@@ -97,8 +97,9 @@ library CircuitParams {
 
     function get_column_rotations()
     internal pure returns (int256[][] memory) {
-        int256[][] memory column_rotations = new int256[][](55);
+        int256[][] memory column_rotations = new int256[][](56);
         uint idx = 0;
+        column_rotations[idx++] = makeDyn1(0);
         column_rotations[idx++] = makeDyn1(0);
         column_rotations[idx++] = makeDyn1(0);
         column_rotations[idx++] = makeDyn1(0);

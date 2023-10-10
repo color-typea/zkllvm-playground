@@ -60,7 +60,7 @@ circuit-transpile: mkfolders circuit-assign
 	cd ${ZKLLVM} && ./build/bin/transpiler/transpiler -m gen-gate-argument -i ${PUBLIC_INPUT} -t ${ASSIGNMENT_TABLE_FILE} -c ${CRCT_FILE} -o ${GATES_DIR} --optimize-gates
 
 circuit-gen-circuit-params: circuit-assign
-		cd ${ZKLLVM} && ./build/bin/transpiler/transpiler -m gen-test-proof -i ${PUBLIC_INPUT} -t ${ASSIGNMENT_TABLE_FILE} -c ${CRCT_FILE} -o ${GATES_DIR} --optimize-gates
+		cd ${ZKLLVM} && ./build/bin/transpiler/transpiler -m gen-circuit-params -i ${PUBLIC_INPUT} -t ${ASSIGNMENT_TABLE_FILE} -c ${CRCT_FILE} -o ${GATES_DIR} --optimize-gates
 
 codegen-circuit-params: circuit-gen-circuit-params
 	. ${PYTHON_VIRTUALENV}/bin/activate && python3 codegen/codegen_circuit_params.py

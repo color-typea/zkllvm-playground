@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "testhh": "npx hardhat test --no-compile"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -17,6 +19,7 @@
     "hardhat-deploy": "^0.11.37",
     "hardhat-deploy-ethers": "^0.4.1",
     "lossless-json": "^2.0.11",
+    "solidity-math": "^0.1.0",
     "tmp": "^0.2.1"
   },
   "dependencies": {

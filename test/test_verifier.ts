@@ -1,6 +1,7 @@
 import {expect} from "chai";
 import * as hre from 'hardhat';
-import { CircuitInput, CircuitInputClass, ProofGeneratorCLIProofProducer } from './proof_gen';
+import { ProofGeneratorCLIProofProducer } from './proof_gen';
+import { CircuitInput, CircuitInputClass } from './circuit_input';
 import { Contract } from "ethers";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
 
@@ -18,7 +19,7 @@ async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buf
     return await contract.submitReportData(report, proof);
 }
 
-async function runTest(circuit_input: CircuitInput, expectedResult: bool) {
+async function runTest(circuit_input: CircuitInput, expectedResult: boolean) {
     await hre.deployments.fixture(['VerificationContract']);
     const Contract = await hre.ethers.getContract<Contract>('VerificationContract');
     const zkProof = await runProducer(circuit_input);

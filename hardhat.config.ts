@@ -21,7 +21,7 @@ const config: HardhatUserConfig = {
     hardhat: {
         blockGasLimit: 50000000000
     },
-}
+  }
 };
 
 export default config;

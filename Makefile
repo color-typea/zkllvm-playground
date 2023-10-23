@@ -23,7 +23,11 @@ CONTRACTS_DIR=${PROJECT_DIR}/contracts
 
 ZKLLVM=${PROJECT_DIR}/../zkllvm
 PROOF_MARKET=${PROJECT_DIR}/../proof-market-toolchain
+PROOF_GENERATOR_FOLDER=${PROJECT_DIR}/../proof-producer
 PYTHON_VIRTUALENV=~/.venvs/zkllvm-playground
+
+# PROOF_GENERATOR=${PROOF_MARKET}/build/bin/proof-generator/proof-generator
+PROOF_GENERATOR=${PROOF_GENERATOR_FOLDER}/build/bin/proof-generator/proof-generator
 
 STATEMENT_KEY=119745395
 REQUEST_KEY=119843892
@@ -69,7 +73,7 @@ move-gates: circuit-transpile rewrite-gates
 	cp -r ${GATES_DIR} ${CONTRACTS_DIR}/gates
 
 prepare-statement: circuit-build
-	. ${PYTHON_VIRTUALENV}/bin/activate && python3 ${PROOF_MARKET}/scripts/prepare_statement.py --circuit ${COMPILED_CIRCUIT} --file ${CIRCUIT_METADATA} --type placeholder-zkllvm --private --output ${STATEMENT_FILE}
+	. ${PYTHON_VIRTUALENV}/bin/activate && python3 ${PROOF_MARKET}/scripts/prepare_statement.py --circuit ${COMPILED_CIRCUIT} --type placeholder-zkllvm --private --output ${STATEMENT_FILE} --name ${PROJECT_NAME}
 
 prepare-artifacts: circuit-transpile move-gates codegen-circuit-params prepare-statement
 
@@ -89,12 +93,13 @@ check-proposal:
 	. ${PYTHON_VIRTUALENV}/bin/activate && python3 ${PROOF_MARKET}/scripts/proposal_tools.py get --key ${PROPOSAL_KEY}
 
 generate-proof-local:
-	${PROOF_MARKET}/build/bin/proof-generator/proof-generator --proof_out=${PROOF_BIN} --circuit_input=${STATEMENT_FILE} --public_input=${PUBLIC_INPUT}
+# ${PROOF_GENERATOR} --proof_out=${PROOF_BIN} --circuit_input=${STATEMENT_FILE} --public_input=${PUBLIC_INPUT}
+	${PROOF_GENERATOR} --proof ${PROOF_BIN} --circuit ${CRCT_FILE} --assignment-table ${ASSIGNMENT_TABLE_FILE}
 
 generate-proof-for-proof-market: mkfolders
 	. ${PYTHON_VIRTUALENV}/bin/activate && python3 ${PROOF_MARKET}/scripts/statement_tools.py get --key ${STATEMENT_KEY} -o ${STATEMENT_FILE_FROM_PM}
 	. ${PYTHON_VIRTUALENV}/bin/activate && python3 ${PROOF_MARKET}/scripts/public_input_get.py --key ${REQUEST_KEY} -o ${PUBLIC_INPUT_FROM_PM}
-	${PROOF_MARKET}/build/bin/proof-generator/proof-generator --proof_out=${PROOF_FOR_PM} --circuit_input=${STATEMENT_FILE_FROM_PM} --public_input=${PUBLIC_INPUT_FROM_PM}
+	${PROOF_GENERATOR} --proof_out=${PROOF_FOR_PM} --circuit_input=${STATEMENT_FILE_FROM_PM} --public_input=${PUBLIC_INPUT_FROM_PM}
 
 submit-proof: generate-proof-for-proof-market
 	. ${PYTHON_VIRTUALENV}/bin/activate && python3 ${PROOF_MARKET}/scripts/proof_tools.py push --request_key ${REQUEST_KEY} --proposal_key ${PROPOSAL_KEY} --file ${PROOF_FOR_PM}
@@ -107,6 +112,7 @@ deploy: prepare_artifacts
 
 prepare-env: deploy prepare-statement
 
-test: prepare-artifacts
+test-fast: 
 	npx hardhat test
 	
+test: prepare-artifacts test-fast

@@ -3,17 +3,32 @@ import * as os from 'os';
 import * as path from 'path';
 import * as childProcess from 'child_process';
 import * as tmp from 'tmp';
+import { uint32, uint256 } from "solidity-math";
 
 const CUR_DIR = __dirname;
 const PROJECT_DIR = path.dirname(CUR_DIR);
-const OUTPUT_DIR = path.join(PROJECT_DIR, 'output');
+// const OUTPUT_DIR = path.join(PROJECT_DIR, 'output');
 
-const PROOF_GENERATOR = path.join(PROJECT_DIR, '../proof-market-toolchain/build/bin/proof-generator', 'proof-generator');
+// const PROOF_GENERATOR = path.join(PROJECT_DIR, '../proof-market-toolchain/build/bin/proof-generator', 'proof-generator');
+const PROOF_GENERATOR = path.join(PROJECT_DIR, '../proof-producer/build/bin/proof-generator', 'proof-generator');
+const ASSIGNER = path.join(PROJECT_DIR, '../zkllvm/build/bin/assigner', 'assigner');
+const COMPILED_CIRCUIT = path.join(PROJECT_DIR, 'output/circuit-developer', 'circuit.ll');
 
-const DEFAULT_STATEMENT = path.join(OUTPUT_DIR, 'proof-requester', 'circuit.json');
+// const DEFAULT_STATEMENT = path.join(OUTPUT_DIR, 'proof-requester', 'circuit.json');
 
 interface HashType {
     vector: { field: string }[];
+}
+
+function identity(x) { return x; }
+
+function readUint128FromBuffer(buffer: Buffer, offset_bytes: number) {
+    let result = uint256(0);
+    result.ior(uint256(buffer.readUInt32LE(offset_bytes + 0)).shln(0));
+    result.ior(uint256(buffer.readUInt32LE(offset_bytes + 4)).shln(4 * 8));
+    result.ior(uint256(buffer.readUInt32LE(offset_bytes + 8)).shln(8 * 8));
+    result.ior(uint256(buffer.readUInt32LE(offset_bytes + 12)).shln(12 * 8));
+    return result;
 }
 
 abstract class InputBase {
@@ -21,19 +36,19 @@ abstract class InputBase {
         return { int: val };
     }
 
-    static asArray<T, TOut>(val: T[], mapper: (item: T) => TOut): { array: TOut[] } {
+    static asArray<T, TOut>(val: T[], mapper: (item: T) => TOut = identity): { array: TOut[] } {
         const mappedValues = val.map(mapper);
         return { array: mappedValues };
     }
 
-    static asVector<T, TOut>(val: Array<T>, mapper: (item: T) => TOut): { vector: TOut[] } {
+    static asVector<T, TOut>(val: Array<T>, mapper: (item: T) => TOut = identity): { vector: TOut[] } {
         const mappedValues = val.map(mapper);
         return { vector: mappedValues };
     }
 
     static asHash(value: Buffer): HashType {
-        const low = value.readUIntLE(0, 16);
-        const high = value.readUIntLE(16, 16);
+        const low = readUint128FromBuffer(value, 0);
+        const high = readUint128FromBuffer(value, 16);
         return { vector: [{ field: low.toString() }, { field: high.toString() }] };
     }
 
@@ -46,29 +61,41 @@ abstract class InputBase {
 }
 
 export interface CircuitInput {
-    a: number;
-    b: number;
-    sum: number;
+    actual_validator_count: number,
+    validator_balances: Array<number>,
+    expected_total_balance: number,
+    expected_balances_hash: Buffer
 
     serializeFullForProofGen(): any[];
     serializePublicForContract(): any[]
 }
 
 export class CircuitInputClass extends InputBase implements CircuitInput {
-    constructor(public a: number, public b: number, public sum: number) {
+    constructor(
+        public actual_validator_count: number,
+        public validator_balances: Array<number>,
+        public expected_total_balance: number,
+        public expected_balances_hash: Buffer
+    ) {
         super();
     }
 
     serializeFullForProofGen(): any[] {
         return [
-            InputBase.asInt(this.a),
-            InputBase.asInt(this.b),
-            InputBase.asInt(this.sum),
+            InputBase.asInt(this.actual_validator_count),
+            InputBase.asArray(this.validator_balances, (x) => { return {"int": x};}),
+            InputBase.asInt(this.expected_total_balance),
+            InputBase.asHash(this.expected_balances_hash),
         ];
     }
 
     serializePublicForContract(): any[] {
-        return [this.a, this.b, this.sum];
+        return [
+            InputBase.asInt(this.actual_validator_count),
+            InputBase.asArray(this.validator_balances, (x) => x),
+            InputBase.asInt(this.expected_total_balance),
+            InputBase.asHash(this.expected_balances_hash),
+        ];
     }
 }
 
@@ -77,7 +104,9 @@ export class ProofGeneratorCLIProofProducer {
 
     constructor(
         private proofProducerBin: string = PROOF_GENERATOR,
-        private circuitStatementFile: string = DEFAULT_STATEMENT
+        private assignerBin: string = ASSIGNER,
+        private circuit_bytecode: string = COMPILED_CIRCUIT,
+        // private circuitStatementFile: string = DEFAULT_STATEMENT
     ) { }
 
     private flattenNamedArgs(namedArgs: Record<string, string>): string[] {
@@ -87,13 +116,24 @@ export class ProofGeneratorCLIProofProducer {
         );
     }
 
-    private genRunArgs(publicInputFile: string, outputFile: string): string[] {
+    // private genRunArgs(publicInputFile: string, outputFile: string): string[] {
+    //     return [
+    //         this.proofProducerBin,
+    //         ...this.flattenNamedArgs({
+    //             '--proof_out': outputFile,
+    //             '--circuit_input': this.circuitStatementFile,
+    //             '--public_input': publicInputFile,
+    //         }),
+    //     ];
+    // }
+
+    private genRunArgsV2(crct: string, assignmentTable: string, outputFile: string): string[] {
         return [
             this.proofProducerBin,
             ...this.flattenNamedArgs({
-                '--proof_out': outputFile,
-                '--circuit_input': this.circuitStatementFile,
-                '--public_input': publicInputFile,
+                '--proof': outputFile,
+                '--circuit': crct,
+                '--assignment-table': assignmentTable,
             }),
         ];
     }
@@ -132,6 +172,59 @@ export class ProofGeneratorCLIProofProducer {
             });
         });
     }
+
+    _genRunAssignerArgs(
+        inputFileName: string,
+        crctFileName: string,
+        tblFileName: string,
+    ): string[] {
+        return [
+            this.assignerBin,
+            ...this.flattenNamedArgs({
+                "--bytecode": this.circuit_bytecode,
+                "--public-input": inputFileName,
+                "--assignment-table": tblFileName,
+                "--circuit": crctFileName,
+                "--elliptic-curve-type": "pallas"
+            })
+        ]
+    }
+
+    async _runAssigner(
+        proofInput: CircuitInput,
+        inputFileName?: string
+    ): Promise<{crct: string, assignmentTable: string}> {
+        return new Promise<{crct: string, assignmentTable: string}>(async (resolve, reject) => {
+            const inputFile = inputFileName ?? (await this._createTempFile('input', 'json'));
+            const crct = await this._createTempFile('circuit', 'crct');
+            const tbl = await this._createTempFile('circuit', 'tbl');
+            const input = proofInput.serializeFullForProofGen();
+            fs.writeFileSync(inputFile, JSON.stringify(input));
+
+            const runArgs = this._genRunAssignerArgs(inputFile, crct, tbl).join(' ');
+            ProofGeneratorCLIProofProducer.LOGGER.info('Invoking assigner');
+            ProofGeneratorCLIProofProducer.LOGGER.debug('Run args', runArgs);
+            // reject(new Error(`Failed to run assigner - retcode 1`));
+            const process = childProcess.spawn(runArgs, {
+                shell: true,
+                stdio: 'inherit',
+            });
+            process.on('error', (err) => {
+                reject(err);
+            });
+            process.on('close', (code, signal) => {
+                if (signal) {
+                    reject(`Assigner exited with signal ${signal}`);
+                }
+                if (code === 0) {
+                    resolve({crct, assignmentTable: tbl});
+                } else {
+                    reject(new Error(`Failed to run assigner - retcode ${code}`));
+                }
+            });
+        });
+
+    }
     
     generateProof(
         proofInput: CircuitInput,
@@ -139,39 +232,43 @@ export class ProofGeneratorCLIProofProducer {
         proofFileName?: string
     ): Promise<Buffer> {
         return new Promise<Buffer>(async (resolve, reject) => {
-            ProofGeneratorCLIProofProducer.LOGGER.info('Invoking proof producer');
 
-            const inputFile = inputFileName ?? (await this._createTempFile('input', 'json'));
-            const proofFile = proofFileName ?? (await this._createTempFile('input', 'json'));
+            const proofFile = proofFileName ?? (await this._createTempFile('proof', 'bin'));
+            try {
+                const {crct, assignmentTable} = await this._runAssigner(proofInput, inputFileName);
+                const runArgs = this.genRunArgsV2(crct, assignmentTable, proofFile).join(' ');
+                ProofGeneratorCLIProofProducer.LOGGER.info('Invoking proof producer');
+                ProofGeneratorCLIProofProducer.LOGGER.debug("Running proof generator", runArgs);
+                const process = childProcess.spawn(runArgs, {
+                    shell: true,
+                    stdio: 'inherit',
+                });
+                process.on('error', (err) => {
+                    console.log("In error");
+                    reject(err);
+                });
+    
+    
+                process.on('close', (code, signal) => {
+                    if (signal) {
+                        reject(`Proof generator exited with signal ${signal}`);
+                    }
+                    if (code === 0) {
+                        fs.readFile(proofFile, 'utf8', (err, data) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                resolve(this.readProofFile(data));
+                            }
+                        });
+                    } else {
+                        reject(new Error(`Failed to run proof generator - retcode ${code}`));
+                    }
+                });
 
-            const input = proofInput.serializeFullForProofGen();
-            fs.writeFileSync(inputFile, JSON.stringify(input));
-
-            const args = this.genRunArgs(inputFile, proofFile);
-            // ProofGeneratorCLIProofProducer.LOGGER.info("Running proof generator", args);
-            const cmd = args.join(' ');
-            const process = childProcess.spawn(cmd, {
-                shell: true,
-                stdio: 'inherit',
-            });
-
-            process.on('error', (err) => {
+            } catch (err: any) {
                 reject(err);
-            });
-
-            process.on('close', (code) => {
-                if (code === 0) {
-                    fs.readFile(proofFile, 'utf8', (err, data) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(this.readProofFile(data));
-                        }
-                    });
-                } else {
-                    reject(new Error(`Failed to run proof generator - retcode ${code}`));
-                }
-            });
+            }            
         });
     }
 }

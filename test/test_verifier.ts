@@ -38,16 +38,16 @@ function padTo(arr: number[], length: number, padValue: number = 0): number[] {
 }
 
 function sum(arr: number[]): number {
-    let sum = 0;
+    let val = 0;
     for (let i = 0; i < arr.length; i++) {
-        sum += arr[i];
+        val += arr[i];
     }
-    return sum;
+    return val;
 }
 
 describe("Contract", async function () {
     this.timeout(120000); 
-    const inputSize = 16;
+    const inputSize = 8;
     describe("valid input", async function () {
         describe("works for correct sum and hash", async () => {
             it("[1,2,3,4]", async () => {
@@ -59,15 +59,15 @@ describe("Contract", async function () {
                     Buffer.from('256da5067655c109f9c2a30d4768fec4e4866a9471a5d6eebc703a5dc0870352', 'hex'));
                 await runTest(input, true);
             });
-            it("balancesTreeExample16", async () => {
+            it("balancesTreeExample8", async () => {
                 const array = [
-                    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+                    1, 2, 3, 4, 5, 6, 7, 8,
                 ];
                 const input = new CircuitInputClass(
                     16,
                     padTo(array, inputSize),
                     sum(array),
-                    Buffer.from('be5c675c40ef504b030eb87525c1b874632dd44a1f2aaa12f1aa8904d8fb84b9', 'hex'));
+                    Buffer.from('4168f84a0de6317a08fe5dbebe5536746b0acec3b1f14aa7b67e7e63a3cfff0f', 'hex'));
                 await runTest(input, true);
             })
         });

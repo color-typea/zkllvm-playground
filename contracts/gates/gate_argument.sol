@@ -25,11 +25,11 @@ import "@nilfoundation/evm-placeholder-verification/contracts/commitments/batche
 import "@nilfoundation/evm-placeholder-verification/contracts/interfaces/gate_argument.sol";
 
 import "./gate0.sol";
-import "./gate10.sol";
+import "./gate4.sol";
 
 
 contract gates_gate_argument_split_gen  is IGateArgument{
-    uint256 constant GATES_N = 16;
+    uint256 constant GATES_N = 17;
 
     struct local_vars_type{
         // 0x0
@@ -95,7 +95,7 @@ contract gates_gate_argument_split_gen  is IGateArgument{
         local_vars.gates_evaluation = 0;
 
 		(local_vars.gates_evaluation, local_vars.theta_acc) = gates_gate0.evaluate_gate_be(gate_params, local_vars);
-		(local_vars.gates_evaluation, local_vars.theta_acc) = gates_gate10.evaluate_gate_be(gate_params, local_vars);
+		(local_vars.gates_evaluation, local_vars.theta_acc) = gates_gate4.evaluate_gate_be(gate_params, local_vars);
 
 
         gates_evaluation = local_vars.gates_evaluation;

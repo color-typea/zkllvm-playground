@@ -71,7 +71,7 @@ constexpr std::size_t BALANCES_TARGET_TREE_HEIGHT = VALIDATORS_MAX_SIZE_LOG2 - B
 // but only carrying actual number of validators (~1M by Oct 2023), while circuit has to use array and thus would carry a full
 // VALIDATORS_MAX_SIZE elements - which is a lot. So we're using a smaller "problem size" to carry (and pass aroung) the necessary
 // minimum of "padding" elemetns.
-constexpr std::size_t PROBLEM_SIZE_LOG2 = 4;
+constexpr std::size_t PROBLEM_SIZE_LOG2 = 3;
 constexpr std::size_t VALIDATORS_COUNT = 1 << PROBLEM_SIZE_LOG2; // 2 ** PROBLEM_SIZE_LOG2
 constexpr std::size_t VALIDATORS_TREE_HEIGHT = PROBLEM_SIZE_LOG2; // 2 ** PROBLEM_SIZE_LOG2
 constexpr std::size_t BALANCES_COUNT = 1 << PROBLEM_SIZE_LOG2; // 2 ** PROBLEM_SIZE_LOG2
@@ -195,6 +195,10 @@ bool circuit(
 
     // This should be enforced check
     // assert(is_same(expected_balances_hash, balances_hash) && total_balance == expected_total_balance);
+    bool merkleRootsMatch = is_same(expected_balances_hash, balances_hash);
+    bool balancesMatch = total_balance == expected_total_balance;
+
+    __builtin_assigner_exit_check(merkleRootsMatch && balancesMatch);
    
-    return is_same(expected_balances_hash, balances_hash) && total_balance == expected_total_balance;
+    return true;
 }

@@ -48,6 +48,9 @@ rm-gates:
 rm-proof:
 	rm -f ${PROOF_BIN}
 
+clean:
+	rm -rf ${OUTPUT_DIR}
+
 create-virtualenv:
 	virtualenv -p python3 ${PYTHON_VIRTUALENV}
 	. ${PYTHON_VIRTUALENV}/bin/activate; pip install -r requirements.txt
@@ -70,7 +73,7 @@ circuit-transpile: mkfolders rm-gates circuit-assign
 	cd ${ZKLLVM} && ./build/bin/transpiler/transpiler -m gen-evm-verifier -i ${PUBLIC_INPUT} -t ${ASSIGNMENT_TABLE_FILE} -c ${CRCT_FILE} -o ${GATES_DIR} --optimize-gates
 
 circuit-gen-test-proof: rm-proof
-	cd ${ZKLLVM} && ./build/bin/transpiler/transpiler -m gen-test-proof -i ${PUBLIC_INPUT} -t ${ASSIGNMENT_TABLE_FILE} -c ${CRCT_FILE} -o ${GATES_DIR} --optimize-gates
+	cd ${ZKLLVM} && ./build/bin/transpiler/transpiler -m gen-test-proof -i ${PUBLIC_INPUT} -t ${ASSIGNMENT_TABLE_FILE} -c ${CRCT_FILE} -o ${GATES_DIR} --optimize-gates --skip-verification
 	mv -f ${GATES_DIR}/proof.bin ${PROOF_BIN}
 
 circuit-gen-circuit-params: circuit-assign
@@ -106,7 +109,7 @@ submit-proposal:
 check-proposal:
 	. ${PYTHON_VIRTUALENV}/bin/activate && python3 ${PROOF_MARKET}/scripts/proposal_tools.py get --key ${PROPOSAL_KEY}
 
-generate-proof-local: circuit-assign rm-proof
+generate-proof-local: rm-proof
 # ${PROOF_GENERATOR} --proof_out=${PROOF_BIN} --circuit_input=${STATEMENT_FILE} --public_input=${PUBLIC_INPUT}
 	${PROOF_GENERATOR} --proof ${PROOF_BIN} --circuit ${CRCT_FILE} --assignment-table ${ASSIGNMENT_TABLE_FILE}
 
@@ -138,5 +141,9 @@ test-in-evm-placeholder: rm-gates circuit-assign circuit-transpile generate-proo
 	cd ${EVM_PLACEHOLDER_VERIFICATION} && npx hardhat deploy && npx hardhat verify-circuit-proof --test gates
 
 test-in-evm-placeholder-bad: circuit-assign-bad generate-proof-local
+	cp ${PROOF_BIN} ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/proof.bin
+	cd ${EVM_PLACEHOLDER_VERIFICATION} && npx hardhat deploy && npx hardhat verify-circuit-proof --test gates
+
+test-in-evm-placeholder-bad-transpiler: circuit-assign-bad circuit-gen-test-proof
 	cp ${PROOF_BIN} ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/proof.bin
 	cd ${EVM_PLACEHOLDER_VERIFICATION} && npx hardhat deploy && npx hardhat verify-circuit-proof --test gates

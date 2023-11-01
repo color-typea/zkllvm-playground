@@ -5,11 +5,6 @@ import { CircuitInput, CircuitInputClass } from './circuit_input';
 import { Contract } from "ethers";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
 
-async function runProducer(circuit_input: CircuitInput): Promise<Buffer> {
-    const proofProducer = new ProofGeneratorCLIProofProducer();
-    return proofProducer.generateProof(circuit_input);
-}
-
 async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buffer): Promise<boolean> {
     const report = { sum: input.sum }; // Replace with your data
     const proof = {
@@ -19,12 +14,18 @@ async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buf
     return await contract.submitReportData(report, proof);
 }
 
-async function runTest(circuit_input: CircuitInput, expectedResult: boolean) {
-    await hre.deployments.fixture(['VerificationContract']);
-    const Contract = await hre.ethers.getContract<Contract>('VerificationContract');
-    const zkProof = await runProducer(circuit_input);
-    const response = await submitProof(Contract, circuit_input, zkProof);
-    expect(response).to.equal(expectedResult);
+async function runTest(circuit_input: CircuitInput, shouldPass: boolean) {
+    const proofProducer = new ProofGeneratorCLIProofProducer();
+    const skipVerification = !shouldPass;
+    try {
+        await hre.deployments.fixture(['VerificationContract']);
+        const Contract = await hre.ethers.getContract<Contract>('VerificationContract');
+        const zkProof = await proofProducer.generateProof(circuit_input, skipVerification);
+        const response = await submitProof(Contract, circuit_input, zkProof);
+        expect(response).to.equal(shouldPass);
+    } finally {
+        // proofProducer.cleanup();
+    }
 }
 
 describe("Contract", async function () {

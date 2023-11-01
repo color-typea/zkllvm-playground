@@ -1,17 +1,16 @@
+#include <cstdint>
 #include <nil/crypto3/hash/algorithm/hash.hpp>
 #include <nil/crypto3/hash/sha2.hpp>
 
 using namespace nil::crypto3;
 
-using hash_type = hashes::sha2<256>;
-using block_type = hash_type::block_type;
-using field_type = algebra::curves::pallas::base_field_type;
+// using hash_type = hashes::sha2<256>;
+// using block_type = hash_type::block_type;
+// using field_type = algebra::curves::pallas::base_field_type;
 
-#include <cstdint>
-
-bool is_same(block_type block0, block_type block1){
-    return block0[0] == block1[0] && block0[1] == block1[1];
-}
+// bool is_same(block_type block0, block_type block1){
+//     return block0[0] == block1[0] && block0[1] == block1[1];
+// }
 
 // typedef __zkllvm_field_pallas_base __attribute__((ext_vector_type(64))) decomposed_int64_type;
 

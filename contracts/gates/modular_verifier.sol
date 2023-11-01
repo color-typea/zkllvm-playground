@@ -32,8 +32,8 @@ import "@nilfoundation/evm-placeholder-verification/contracts/algebra/field.sol"
 contract modular_verifier_gates is IModularVerifier{
     uint256 constant modulus = 28948022309329048855892746252171976963363056481941560715954676764349967630337;
     bool    constant use_lookups = false;
-    bytes32 constant vk1 = bytes32(0x1da2f4e869077c3fa108f6a8eda9f5b5e164dc3f514fb53caa039ad4a0d7dc11);
-    bytes32 constant vk2 = bytes32(0x3a57c63db7b958452775f5821978f9328283ae1b86413575161a67ff8cc98d2e);
+    bytes32 constant vk1 = bytes32(0xd07aa8ec8344153a4fe670ddf1a9796d6b4e840fecf9b35b60ed8994bef87cb8);
+    bytes32 constant vk2 = bytes32(0x88a235b7b0eb1c2d3bbede407e76b85c727fca86e295ca67530d75ec80e8bcdf);
     bytes32 transcript_state;
     address _gate_argument_address;
     address _permutation_argument_address;
@@ -45,8 +45,8 @@ contract modular_verifier_gates is IModularVerifier{
     uint64  constant table_offset = z_offset + 0x80 * 21 + 0xc0;
     uint64  constant table_end_offset = table_offset + 3072;
     uint64  constant quotient_offset = 3136;
-    uint64  constant rows_amount = 8;
-    uint256 constant omega = 199455130043951077247265858823823987229570523056509026484192158816218200659;
+    uint64  constant rows_amount = 32;
+    uint256 constant omega = 3612152772817685532768635636100598085437510685224817206515049967552954106764;
     uint256 constant special_selectors_offset = z_offset + 21 * 0x80;
 
     function initialize(

@@ -137,6 +137,7 @@ test: prepare-artifacts test-fast
 test-in-evm-placeholder: rm-gates circuit-assign circuit-transpile generate-proof-local
 	rm -f ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/*
 	cp ${GATES_DIR}/* ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates
+	mv ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/public_input.json ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/input.json 
 	cp ${PROOF_BIN} ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/proof.bin
 	cd ${EVM_PLACEHOLDER_VERIFICATION} && npx hardhat deploy && npx hardhat verify-circuit-proof --test gates
 

@@ -11,9 +11,17 @@ const PROOF_GENERATOR = path.join(PROJECT_DIR, '../proof-producer/build/bin/proo
 const ASSIGNER = path.join(PROJECT_DIR, '../zkllvm/build/bin/assigner', 'assigner');
 const COMPILED_CIRCUIT = path.join(PROJECT_DIR, 'output/circuit-developer', 'circuit.ll');
 
+const suppressSubprocessOutput = true;
+const suppressLogging = true;
+
+function empty() {}
 
 export class ProofGeneratorCLIProofProducer {
-    private static LOGGER = console;
+    private static LOGGER = !suppressLogging ? console : { log: empty, info: empty, debug: empty };
+
+    private files: Array<string> = [];
+
+    private suppress_subprocess_output: boolean = true;
 
     constructor(
         private proofProducerBin: string = PROOF_GENERATOR,
@@ -28,7 +36,7 @@ export class ProofGeneratorCLIProofProducer {
         );
     }
 
-    private genRunArgsV2(crct: string, assignmentTable: string, outputFile: string): string[] {
+    private genRunArgsV2(crct: string, assignmentTable: string, outputFile: string, skipVerification: boolean): string[] {
         return [
             this.proofProducerBin,
             ...this.flattenNamedArgs({
@@ -36,6 +44,7 @@ export class ProofGeneratorCLIProofProducer {
                 '--circuit': crct,
                 '--assignment-table': assignmentTable,
             }),
+            skipVerification ? '--skip-verification': ''
         ];
     }
 
@@ -45,6 +54,7 @@ export class ProofGeneratorCLIProofProducer {
      */
     private readProofFile(rawData: string): Buffer {
         return Buffer.from(rawData.slice(2), 'hex');
+        // return Buffer.from(rawData, 'hex');
     }
 
     _createTempFile(prefix: string, postfix: string): Promise<string> {
@@ -53,6 +63,7 @@ export class ProofGeneratorCLIProofProducer {
                 if (err) {
                     reject(err);
                 }
+                this.files.push(path);
                 resolve(path);
             });
         });
@@ -92,7 +103,7 @@ export class ProofGeneratorCLIProofProducer {
             // reject(new Error(`Failed to run assigner - retcode 1`));
             const process = childProcess.spawn(runArgs, {
                 shell: true,
-                stdio: 'inherit',
+                stdio: this.suppress_subprocess_output ? 'ignore' : 'inherit',
             });
             process.on('error', (err) => {
                 reject(err);
@@ -113,20 +124,21 @@ export class ProofGeneratorCLIProofProducer {
     
     generateProof(
         proofInput: CircuitInput,
+        skipVerification: boolean = false,
         inputFileName?: string,
-        proofFileName?: string
+        proofFileName?: string,
     ): Promise<Buffer> {
         return new Promise<Buffer>(async (resolve, reject) => {
 
             const proofFile = proofFileName ?? (await this._createTempFile('proof', 'bin'));
             try {
                 const {crct, assignmentTable} = await this._runAssigner(proofInput, inputFileName);
-                const runArgs = this.genRunArgsV2(crct, assignmentTable, proofFile).join(' ');
+                const runArgs = this.genRunArgsV2(crct, assignmentTable, proofFile, skipVerification).join(' ');
                 ProofGeneratorCLIProofProducer.LOGGER.info('Invoking proof producer');
                 ProofGeneratorCLIProofProducer.LOGGER.debug("Running proof generator", runArgs);
                 const process = childProcess.spawn(runArgs, {
                     shell: true,
-                    stdio: 'inherit',
+                    stdio: this.suppress_subprocess_output ? 'ignore' : 'inherit',
                 });
                 process.on('error', (err) => {
                     console.log("In error");
@@ -155,5 +167,12 @@ export class ProofGeneratorCLIProofProducer {
                 reject(err);
             }            
         });
+    }
+
+    cleanup(): void{
+        for (const file of this.files) {
+            fs.unlinkSync(file);
+        }
+        this.files = [];
     }
 }

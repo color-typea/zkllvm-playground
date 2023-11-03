@@ -74,6 +74,8 @@ export class CircuitInputClass extends InputBase implements CircuitInput {
 
     serializePublicForContract(): any[] {
         return [
+            this.a,
+            this.b,
             this.sum,
         ];
     }

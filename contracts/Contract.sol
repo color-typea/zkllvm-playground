@@ -35,8 +35,8 @@ contract VerificationContract {
         uint256[] memory publicInput = new uint256[](0);
         verifier.verify(
             proof.zkProof,
-            publicInput
-            // proof.public_input
+            // publicInput
+            proof.public_input
         );
         return (true);
     }

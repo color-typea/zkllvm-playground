@@ -65,7 +65,7 @@ using namespace nil::crypto3;
 //     __builtin_assigner_exit_check(equal);
 // }
 
-[[circuit]] void add([[private]] uint64_t a, [[private]] uint64_t b, uint64_t sum) {
+[[circuit]] void add(uint64_t a, uint64_t b, uint64_t sum) {
     bool equal = a + b == sum;
     __builtin_assigner_exit_check(equal);
 }

@@ -3,18 +3,16 @@ pragma solidity 0.8.9;
 
 library CircuitParams {
     uint256 constant modulus = 28948022309329048855892746252171976963363056481941560715954676764349967630337;
-    uint256 constant r = 12;
-    uint256 constant maxDegree = 8191;
+    uint256 constant r = 10;
+    uint256 constant maxDegree = 2047;
     uint256 constant lambda = 2;
 
-    uint256 constant rowsAmount = 8192;
-    uint256 constant omega = 13175653644678658737556805326666943932741525539026001701374450696535194715445;
+    uint256 constant rowsAmount = 2048;
+    uint256 constant omega = 5207999989657576140891498154897385491612440083899963290755562031717636435093;
 
     function getDOmegas()
-    internal pure returns (uint256[12] memory DOmegas) {
+    internal pure returns (uint256[10] memory DOmegas) {
         DOmegas = [
-            uint256(13175653644678658737556805326666943932741525539026001701374450696535194715445), 
-            uint256(18589158034707770508497743761528839450567399299956641192723316341154428793508), 
             uint256(5207999989657576140891498154897385491612440083899963290755562031717636435093), 
             uint256(21138537593338818067112636105753818200833244613779330379839660864802343411573), 
             uint256(22954361264956099995527581168615143754787441159030650146191365293282410739685), 
@@ -29,10 +27,8 @@ library CircuitParams {
     }
 
     function getStepList()
-    internal pure returns (uint256[12] memory stepList) {
+    internal pure returns (uint256[10] memory stepList) {
         stepList = [
-            uint256(1), 
-            uint256(1), 
             uint256(1), 
             uint256(1), 
             uint256(1), 
@@ -58,8 +54,8 @@ library CircuitParams {
 
     function getInitParams()
     internal pure returns (uint256[] memory initArgs) {
-        uint256[12] memory dOmegas = getDOmegas();
-        uint256[12] memory stepList = getStepList();
+        uint256[10] memory dOmegas = getDOmegas();
+        uint256[10] memory stepList = getStepList();
         uint256[4] memory arithmetizationParams = getArithmetizationParams();
 
         initArgs = new uint256[](

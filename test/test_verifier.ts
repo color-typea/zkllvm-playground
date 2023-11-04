@@ -43,10 +43,10 @@ describe("Contract", async function () {
         // }
         
 
-        it("sum 1..1024 == 524800", async function() {
-            const arr = Array.from(Array(1024), (e, i) => i+1);
+        it("sum 1..256 == 32896", async function() {
+            const arr = Array.from(Array(256), (e, i) => i+1);
             const expectedSum = arr.reduce((acc, val) => acc + val, 0);
-            expect(expectedSum).to.equal(524800); // self-check
+            expect(expectedSum).to.equal(32896); // self-check
             const input = new CircuitInputClass(arr, expectedSum);
             await runTest(input, true);
         });

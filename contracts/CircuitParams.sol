@@ -3,16 +3,24 @@ pragma solidity 0.8.9;
 
 library CircuitParams {
     uint256 constant modulus = 28948022309329048855892746252171976963363056481941560715954676764349967630337;
-    uint256 constant r = 4;
-    uint256 constant maxDegree = 31;
+    uint256 constant r = 12;
+    uint256 constant maxDegree = 8191;
     uint256 constant lambda = 2;
 
-    uint256 constant rowsAmount = 32;
-    uint256 constant omega = 3612152772817685532768635636100598085437510685224817206515049967552954106764;
+    uint256 constant rowsAmount = 8192;
+    uint256 constant omega = 13175653644678658737556805326666943932741525539026001701374450696535194715445;
 
     function getDOmegas()
-    internal pure returns (uint256[4] memory DOmegas) {
+    internal pure returns (uint256[12] memory DOmegas) {
         DOmegas = [
+            uint256(13175653644678658737556805326666943932741525539026001701374450696535194715445), 
+            uint256(18589158034707770508497743761528839450567399299956641192723316341154428793508), 
+            uint256(5207999989657576140891498154897385491612440083899963290755562031717636435093), 
+            uint256(21138537593338818067112636105753818200833244613779330379839660864802343411573), 
+            uint256(22954361264956099995527581168615143754787441159030650146191365293282410739685), 
+            uint256(23692685744005816481424929253249866475360293751445976741406164118468705843520), 
+            uint256(7356716530956153652314774863381845254278968224778478050456563329565810467774), 
+            uint256(17166126583027276163107155648953851600645935739886150467584901586847365754678), 
             uint256(3612152772817685532768635636100598085437510685224817206515049967552954106764), 
             uint256(14450201850503471296781915119640920297985789873634237091629829669980153907901), 
             uint256(199455130043951077247265858823823987229570523056509026484192158816218200659), 
@@ -21,8 +29,16 @@ library CircuitParams {
     }
 
     function getStepList()
-    internal pure returns (uint256[4] memory stepList) {
+    internal pure returns (uint256[12] memory stepList) {
         stepList = [
+            uint256(1), 
+            uint256(1), 
+            uint256(1), 
+            uint256(1), 
+            uint256(1), 
+            uint256(1), 
+            uint256(1), 
+            uint256(1), 
             uint256(1), 
             uint256(1), 
             uint256(1), 
@@ -42,8 +58,8 @@ library CircuitParams {
 
     function getInitParams()
     internal pure returns (uint256[] memory initArgs) {
-        uint256[4] memory dOmegas = getDOmegas();
-        uint256[4] memory stepList = getStepList();
+        uint256[12] memory dOmegas = getDOmegas();
+        uint256[12] memory stepList = getStepList();
         uint256[4] memory arithmetizationParams = getArithmetizationParams();
 
         initArgs = new uint256[](

@@ -60,7 +60,10 @@ install-node-dependencies:
 
 create-env: install-node-dependencies create-virtualenv
 
-circuit-build: mkfolders
+codegen-circuit:
+	. ${PYTHON_VIRTUALENV}/bin/activate && python3 codegen/codegen_circuit.py
+
+circuit-build: mkfolders codegen-circuit
 	cd ${ZKLLVM} && ./build/libs/circifier/llvm/bin/clang-16 -target assigner -D__ZKLLVM__ -I./libs/crypto3/libs/algebra/include -I./build/include -I/usr/local/include -I -I./libs/crypto3/libs/block/include -I/usr/local/include -I./libs/blueprint/include -I./libs/crypto3/libs/codec/include -I./libs/crypto3/libs/containers/include -I./libs/crypto3/libs/hash/include -I./libs/crypto3/libs/kdf/include -I./libs/crypto3/libs/mac/include -I./libs/crypto3/libs/marshalling/core/include -I./libs/crypto3/libs/marshalling/algebra/include -I./libs/crypto3/libs/marshalling/multiprecision/include -I./libs/crypto3/libs/marshalling/zk/include -I./libs/crypto3/libs/math/include -I./libs/crypto3/libs/modes/include -I./libs/crypto3/libs/multiprecision/include -I./libs/crypto3/libs/passhash/include -I./libs/crypto3/libs/pbkdf/include -I./libs/crypto3/libs/threshold/include -I./libs/crypto3/libs/pkpad/include -I./libs/crypto3/libs/pubkey/include -I./libs/crypto3/libs/random/include -I./libs/crypto3/libs/stream/include -I./libs/crypto3/libs/vdf/include -I./libs/crypto3/libs/zk/include -I./libs/stdlib/libcpp -I./libs/stdlib/libc/include -emit-llvm -O1 -S -o ${COMPILED_CIRCUIT} ${SRC_DIR}/circuit.cpp
 
 circuit-assign: mkfolders circuit-build
@@ -134,7 +137,7 @@ test-fast:
 	
 test: prepare-artifacts test-fast
 
-test-in-evm-placeholder: rm-gates circuit-assign circuit-transpile generate-proof-local
+test-in-evm-placeholder: rm-gates circuit-assign circuit-transpile circuit-gen-test-proof
 	rm -f ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/*
 	cp ${GATES_DIR}/* ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates
 	mv ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/public_input.json ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/input.json 

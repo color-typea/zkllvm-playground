@@ -47,9 +47,8 @@ abstract class InputBase {
 
 
 export interface CircuitInput {
-    a: number,
-    b: number,
-    sum: number
+    values: Array<number>
+    expectedSum: number
 
     serializeFullForProofGen(): any[];
     serializePublicForContract(): any[]
@@ -57,26 +56,24 @@ export interface CircuitInput {
 
 export class CircuitInputClass extends InputBase implements CircuitInput {
     constructor(
-        public a: number,
-        public b: number,
-        public sum: number,
+        public values: Array<number>,
+        public expectedSum: number,
     ) {
         super();
     }
 
     serializeFullForProofGen(): any[] {
         return [
-            InputBase.asInt(this.a),
-            InputBase.asInt(this.b),
-            InputBase.asInt(this.sum),
+            InputBase.asArray(this.values, InputBase.asInt),
+            InputBase.asInt(this.expectedSum),
         ];
     }
 
     serializePublicForContract(): any[] {
-        return [
-            this.a,
-            this.b,
-            this.sum,
-        ];
+        // return [
+        //     this.values,
+        //     this.expectedSum
+        // ];
+        return [];
     }
 }

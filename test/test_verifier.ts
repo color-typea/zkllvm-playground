@@ -2,7 +2,7 @@ import {expect} from "chai";
 import * as hre from 'hardhat';
 import { ProofGeneratorCLIProofProducer } from './proof_gen';
 import { CircuitInput, CircuitInputClass } from './circuit_input';
-import { Contract } from "ethers";
+import { Contract, TransactionResponse } from "ethers";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buffer): Promise<boolean> {
@@ -11,20 +11,27 @@ async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buf
         public_input: input.serializePublicForContract(),
         zkProof: zkProof,
     };
-    return await contract.submitReportData(report, proof);
+    return await contract.submitReportData(report, proof, {gasLimit: 30_500_000});
 }
 
-async function runTest(circuit_input: CircuitInput, shouldPass: boolean) {
+async function runTest(
+    circuit_input: CircuitInput, 
+    { returnValue = false, reverts = false }: { returnValue?: boolean, reverts?: boolean }) {
+
     const proofProducer = new ProofGeneratorCLIProofProducer();
-    const skipVerification = !shouldPass;
+    const skipVerification = !returnValue;
     try {
         await hre.deployments.fixture(['VerificationContract']);
         const Contract = await hre.ethers.getContract<Contract>('VerificationContract');
         const zkProof = await proofProducer.generateProof(circuit_input, skipVerification);
-        const response = await submitProof(Contract, circuit_input, zkProof);
-        expect(response).to.equal(shouldPass);
+        if (reverts) {
+            await expect(submitProof(Contract, circuit_input, zkProof)).to.be.revertedWithoutReason();
+        } else {
+            const response = await submitProof(Contract, circuit_input, zkProof);
+            expect(response).to.equal(returnValue);
+        }
     } finally {
-        // proofProducer.cleanup();
+        proofProducer.cleanup();
     }
 }
 
@@ -38,7 +45,7 @@ describe("Contract", async function () {
         for (const test of tests) {
             const {label, input} = test;
             it(label, async function() {
-                await runTest(input, true);
+                await runTest(input, {returnValue: true, reverts: false});
             });
         }
     });
@@ -51,7 +58,7 @@ describe("Contract", async function () {
         for (const test of tests) {
             const {label, input} = test;
             it(label, async function() {
-                await runTest(input, false);
+                await runTest(input, {reverts: true});
             });
         }
     });

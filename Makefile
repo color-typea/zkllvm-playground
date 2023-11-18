@@ -92,7 +92,7 @@ move-gates: circuit-transpile rewrite-gates
 prepare-statement: circuit-build
 	. ${PYTHON_VIRTUALENV}/bin/activate && python3 ${PROOF_MARKET}/scripts/prepare_statement.py --circuit ${COMPILED_CIRCUIT} --type placeholder-zkllvm --private --output ${STATEMENT_FILE} --name ${PROJECT_NAME}
 
-prepare-artifacts: circuit-transpile move-gates codegen-circuit-params prepare-statement
+prepare-artifacts: circuit-transpile move-gates prepare-statement
 
 push-to-proof-market: prepare-statement
 	. ${PYTHON_VIRTUALENV}/bin/activate && python3 ${PROOF_MARKET}/scripts/statement_tools.py push --file ${STATEMENT_FILE}
@@ -136,6 +136,7 @@ test: prepare-artifacts test-fast
 
 test-in-evm-placeholder: rm-gates circuit-assign circuit-transpile generate-proof-local
 	rm -f ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/*
+	mkdir -p ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates
 	cp ${GATES_DIR}/* ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates
 	mv ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/public_input.json ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/input.json 
 	cp ${PROOF_BIN} ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/proof.bin

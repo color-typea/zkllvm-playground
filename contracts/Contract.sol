@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.8 <0.9;
 
-import "./CircuitParams.sol";
 import "@nilfoundation/evm-placeholder-verification/contracts/interfaces/modular_verifier.sol";
 
 contract VerificationContract {
@@ -32,12 +31,9 @@ contract VerificationContract {
         OracleReport memory report,
         OracleProof memory proof
     ) internal view returns (bool) {
-        uint256[] memory publicInput = new uint256[](0);
-        verifier.verify(
+        return verifier.verify(
             proof.zkProof,
-            // publicInput
             proof.public_input
         );
-        return (true);
     }
 }

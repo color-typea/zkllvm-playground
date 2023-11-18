@@ -30,17 +30,17 @@ library modular_commitment_scheme_gates {
     uint256 constant modulus = 28948022309329048855892746252171976963363056481941560715954676764349967630337;
     uint64 constant batches_num = 4;
     uint256 constant r = 4;
-    uint256 constant lambda = 2;
+    uint256 constant lambda = 9;
     uint256 constant D0_size = 32;
     uint256 constant max_degree = 31;
     uint256 constant D0_omega = 3612152772817685532768635636100598085437510685224817206515049967552954106764;
     uint256 constant unique_points = 4;
     uint256 constant permutation_point = 2;
     uint256 constant quotient_point = 0;
-    uint256 constant lookup_point = 2888;
+    uint256 constant lookup_point = 139971342419616;
     bytes constant   points_ids = hex"01010101010101010101010101010101010101010101010101010101010101010101010101010101010103030101010101010101010101010101010101010101010101010101010101010101010101010101010100000000000000000000000000000000";
     uint256 constant omega = 3612152772817685532768635636100598085437510685224817206515049967552954106764;
-    uint256 constant _etha = 24076062000531473157707065586887004500721440230233383252747716527628831114145;
+    uint256 constant _etha = 12080349723337584192766841819030590225120806083347845995471132637391478440921;
 
     struct commitment_state{
         bytes   leaf_data;
@@ -69,17 +69,20 @@ library modular_commitment_scheme_gates {
         uint256 offset;
     }
 
-    function calculate_2points_interpolation(uint256[] memory xi, uint256[2] memory z, uint256 modulus)
+    function calculate_2points_interpolation(uint256[] memory xi, uint256[2] memory z)
     internal pure returns(uint256[2] memory U){
 //        require( xi.length == 2 );
+unchecked {
         U[0] = addmod(mulmod(z[0], xi[1], modulus),modulus - mulmod(z[1], xi[0], modulus), modulus);
         U[1] = addmod(z[1], modulus - z[0], modulus);
+}
     }
 
 //  coeffs for zs on each degree can be precomputed if necessary
-    function calculate_3points_interpolation(uint256[] memory xi, uint256[3] memory z, uint256 modulus)
+    function calculate_3points_interpolation(uint256[] memory xi, uint256[3] memory z)
     internal pure returns(uint256[3] memory U){
 //        require( xi.length == 3 );
+unchecked {
         z[0] = mulmod(z[0], addmod(xi[1], modulus - xi[2], modulus), modulus);
         z[1] = mulmod(z[1], addmod(xi[2], modulus - xi[0], modulus), modulus);
         z[2] = mulmod(z[2], addmod(xi[0], modulus - xi[1], modulus), modulus);
@@ -93,6 +96,7 @@ library modular_commitment_scheme_gates {
         U[1] = addmod(U[1], modulus - mulmod(z[2], addmod(xi[0], xi[1], modulus), modulus), modulus);
 
         U[2] = addmod(z[0], addmod(z[1], z[2], modulus), modulus);
+}
     }
 
     function prepare_eval_points(uint256[][unique_points] memory result, uint256 xi) internal view {
@@ -112,7 +116,9 @@ library modular_commitment_scheme_gates {
 
     }
 
-    function prepare_U_V(bytes calldata blob, commitment_state memory state, uint256 xi) internal view returns(bool result){        
+    function prepare_U_V(bytes calldata blob, commitment_state memory state, uint256 xi) internal view returns(bool result){
+
+unchecked {
         result = true;
         uint64 ind = 0;
         prepare_eval_points(state.unique_eval_points, xi);
@@ -123,24 +129,24 @@ library modular_commitment_scheme_gates {
                 state.factors[ind] = 1;
                 state.denominators[ind][0] = modulus - state.unique_eval_points[ind][0];
                 state.denominators[ind][1] = 1;
-            } else 
+            } else
             if( state.unique_eval_points[ind].length == 2 ){
                 // xi1 - xi0
-                state.factors[ind] = 
+                state.factors[ind] =
                     addmod(state.unique_eval_points[ind][1], modulus - state.unique_eval_points[ind][0], modulus);
                 state.denominators[ind][2] = 1;
 
-                state.denominators[ind][1] = 
+                state.denominators[ind][1] =
                     modulus - addmod(state.unique_eval_points[ind][0], state.unique_eval_points[ind][1], modulus);
 
-                state.denominators[ind][0] = 
+                state.denominators[ind][0] =
                     mulmod(state.unique_eval_points[ind][0], state.unique_eval_points[ind][1], modulus);
                 state.denominators[ind][0] = mulmod(state.denominators[ind][0], state.factors[ind], modulus);
                 state.denominators[ind][1] = mulmod(state.denominators[ind][1], state.factors[ind], modulus);
                 state.denominators[ind][2] = mulmod(state.denominators[ind][2], state.factors[ind], modulus);
-            } else 
+            } else
             if( state.unique_eval_points[ind].length == 3 ){
-                state.factors[ind] = modulus - 
+                state.factors[ind] = modulus -
                     mulmod(
                         mulmod(
                             addmod(state.unique_eval_points[ind][0], modulus - state.unique_eval_points[ind][1], modulus),
@@ -153,24 +159,24 @@ library modular_commitment_scheme_gates {
                 state.denominators[ind][3] = 1;
                 state.denominators[ind][2] =
                     modulus - addmod(
-                        state.unique_eval_points[ind][0], 
-                        addmod(state.unique_eval_points[ind][1],state.unique_eval_points[ind][2], modulus), 
+                        state.unique_eval_points[ind][0],
+                        addmod(state.unique_eval_points[ind][1],state.unique_eval_points[ind][2], modulus),
                         modulus
                     );
-                state.denominators[ind][1] = 
+                state.denominators[ind][1] =
                     addmod(
                         mulmod(state.unique_eval_points[ind][0], state.unique_eval_points[ind][1], modulus),
                         addmod(
                             mulmod(state.unique_eval_points[ind][0], state.unique_eval_points[ind][2], modulus),
                             mulmod(state.unique_eval_points[ind][1], state.unique_eval_points[ind][2], modulus),
                             modulus
-                        ), 
+                        ),
                         modulus
                     );
-                state.denominators[ind][0] = 
+                state.denominators[ind][0] =
                     modulus - mulmod(
-                        state.unique_eval_points[ind][0], 
-                        mulmod(state.unique_eval_points[ind][1],state.unique_eval_points[ind][2], modulus), 
+                        state.unique_eval_points[ind][0],
+                        mulmod(state.unique_eval_points[ind][1],state.unique_eval_points[ind][2], modulus),
                         modulus
                     );
                 state.denominators[ind][0] = mulmod(state.denominators[ind][0], state.factors[ind], modulus);
@@ -181,7 +187,7 @@ library modular_commitment_scheme_gates {
                 console.log("UNPROCESSED number of evaluation points");
                 return false;
             }
-            unchecked{ind++;}
+            ind++;
         }
 
         // Prepare combined U
@@ -191,7 +197,7 @@ library modular_commitment_scheme_gates {
             uint64 cur = 0;
             uint256 offset = 0x8;
             for( uint256 k = 0; k < batches_num;){
-                for( uint256 i = 0; i < state.batch_sizes[k];){   
+                for( uint256 i = 0; i < state.batch_sizes[k];){
                     uint256 cur_point = 0;
                     if(cur < points_ids.length ) cur_point = uint8(points_ids[cur]);
                     else if(k == 2) cur_point = permutation_point;
@@ -200,53 +206,54 @@ library modular_commitment_scheme_gates {
                     else console.log("Wrong index");
 
                     polynomial.multiply_poly_on_coeff(
-                        state.combined_U[ind], 
-                        state.theta, 
+                        state.combined_U[ind],
+                        state.theta,
                         modulus
                     );
                     if( cur_point == ind ){
                         if( point.length == 1 ){
                             state.combined_U[ind][0] = addmod(
                                 state.combined_U[ind][0],
-                                basic_marshalling.get_uint256_be(blob, offset), 
+                                basic_marshalling.get_uint256_be(blob, offset),
                                 modulus
                             );
-                        }  else 
+                        }  else
                         if( point.length == 2 ){
                             uint256[2] memory tmp;
                             tmp[0] = basic_marshalling.get_uint256_be(blob, offset);
                             tmp[1] = basic_marshalling.get_uint256_be(blob, offset + 0x20);
                             tmp = calculate_2points_interpolation(
-                                point, tmp, modulus
-                            );
+                                point, tmp);
                             state.combined_U[ind][0] = addmod(state.combined_U[ind][0], tmp[0], modulus);
                             state.combined_U[ind][1] = addmod(state.combined_U[ind][1], tmp[1], modulus);
-                        } else 
+                        } else
                         if( point.length == 3){
                             uint256[3] memory tmp;
                             tmp[0] = basic_marshalling.get_uint256_be(blob, offset);
                             tmp[1] = basic_marshalling.get_uint256_be(blob, offset + 0x20);
                             tmp[2] = basic_marshalling.get_uint256_be(blob, offset + 0x40);
                             tmp = calculate_3points_interpolation(
-                                point, tmp, modulus
-                            );
+                                point, tmp);
                             state.combined_U[ind][0] = addmod(state.combined_U[ind][0], tmp[0], modulus);
                             state.combined_U[ind][1] = addmod(state.combined_U[ind][1], tmp[1], modulus);
                             state.combined_U[ind][2] = addmod(state.combined_U[ind][2], tmp[2], modulus);
                         } else {
                             return false;
                         }
-                    } 
+                    }
                     offset += state.unique_eval_points[cur_point].length * 0x20;
-                    unchecked{i++;cur++;}
+                    i++;cur++;
                 }
-                unchecked{k++;}
+                k++;
             }
-            unchecked{ind++;}
+            ind++;
         }
+}
     }
 
     function compute_combined_Q(bytes calldata blob,commitment_state memory state) internal view returns(uint256[2] memory y){
+
+unchecked {
         uint256[2][unique_points] memory values;
         {
             uint256 offset = state.initial_data_offset - state.poly_num * 0x40; // Save initial data offset for future use;
@@ -263,14 +270,14 @@ library modular_commitment_scheme_gates {
                     for(uint256 k = 0; k < unique_points; ){
                         values[k][0] = mulmod(values[k][0], state.theta, modulus);
                         values[k][1] = mulmod(values[k][1], state.theta, modulus);
-                        unchecked{k++;}
+                        k++;
                     }
 
                     values[cur_point][0] = addmod(values[cur_point][0], basic_marshalling.get_uint256_be(blob, offset), modulus);
                     values[cur_point][1] = addmod(values[cur_point][1], basic_marshalling.get_uint256_be(blob, offset + 0x20), modulus);
-                    unchecked{offset += 0x40;j++; cur++;}
+                    offset += 0x40;j++; cur++;
                 }
-                unchecked{b++;}
+                b++;
             }
         }
         for(uint256 p = 0; p < unique_points; ){
@@ -284,8 +291,9 @@ library modular_commitment_scheme_gates {
             tmp[1] = mulmod(tmp[1], field.inverse_static(polynomial.evaluate(state.denominators[p], modulus - s, modulus), modulus), modulus);
             y[0] = addmod(y[0], tmp[0], modulus);
             y[1] = addmod(y[1], tmp[1], modulus);
-            unchecked{p++;}
+            p++;
         }
+}
     }
 
     function initialize(
@@ -298,17 +306,17 @@ library modular_commitment_scheme_gates {
         tr_state_after = tr_state.current_challenge;
     }
 
-    function copy_memory_pair_and_check(bytes calldata blob, uint256 proof_offset, bytes memory leaf, uint256[2] memory pair) 
+    function copy_memory_pair_and_check(bytes calldata blob, uint256 proof_offset, bytes memory leaf, uint256[2] memory pair)
     internal pure returns(bool b){
         uint256 c = pair[0];
         uint256 d = pair[1];
         assembly{
             mstore(
-                add(leaf, 0x20), 
+                add(leaf, 0x20),
                 c
             )
             mstore(
-                add(leaf, 0x40), 
+                add(leaf, 0x40),
                 d
             )
         }
@@ -319,17 +327,17 @@ library modular_commitment_scheme_gates {
         }
     }
 
-    function copy_reverted_memory_pair_and_check(bytes calldata blob, uint256 proof_offset, bytes memory leaf, uint256[2] memory pair) 
+    function copy_reverted_memory_pair_and_check(bytes calldata blob, uint256 proof_offset, bytes memory leaf, uint256[2] memory pair)
     internal pure returns(bool b){
         uint256 c = pair[0];
         uint256 d = pair[1];
         assembly{
             mstore(
-                add(leaf, 0x20), 
+                add(leaf, 0x20),
                 d
             )
             mstore(
-                add(leaf, 0x40), 
+                add(leaf, 0x40),
                 c
             )
         }
@@ -340,65 +348,67 @@ library modular_commitment_scheme_gates {
         }
     }
 
-    function copy_pairs_and_check(bytes calldata blob, uint256 offset, bytes memory leaf, uint256 size, uint256 proof_offset) 
+    function copy_pairs_and_check(bytes calldata blob, uint256 offset, bytes memory leaf, uint256 size, uint256 proof_offset)
     internal pure returns(bool b){
+unchecked {
         uint256 offset2 = 0x20;
         for(uint256 k = 0; k < size;){
             assembly{
                 mstore(
-                    add(leaf, offset2), 
+                    add(leaf, offset2),
                     calldataload(add(blob.offset, offset))
                 )
                 mstore(
-                    add(leaf, add(offset2, 0x20)), 
+                    add(leaf, add(offset2, 0x20)),
                     calldataload(add(blob.offset, add(offset, 0x20)))
                 )
             }
-            unchecked{
-                k++; offset2 += 0x40; offset += 0x40;
-            }
+            k++; offset2 += 0x40; offset += 0x40;
         }
         if( !merkle_verifier.parse_verify_merkle_proof_bytes_be(blob, proof_offset, leaf, offset2 - 0x20 )){
             return false;
         } else {
             return true;
         }
+}
     }
 
-    function copy_reverted_pairs_and_check(bytes calldata blob, uint256 offset, bytes memory leaf, uint256 size, uint256 proof_offset) 
+    function copy_reverted_pairs_and_check(bytes calldata blob, uint256 offset, bytes memory leaf, uint256 size, uint256 proof_offset)
     internal pure returns(bool){
+unchecked {
         uint256 offset2 = 0x20;
         for(uint256 k = 0; k < size;){
             assembly{
                 mstore(
-                    add(leaf, offset2), 
+                    add(leaf, offset2),
                     calldataload(add(blob.offset, add(offset, 0x20)))
                 )
                 mstore(
-                    add(leaf, add(offset2, 0x20)), 
+                    add(leaf, add(offset2, 0x20)),
                     calldataload(add(blob.offset, offset))
                 )
             }
-            unchecked{
-                k++; offset2 += 0x40; offset += 0x40;
-            }
+            k++; offset2 += 0x40; offset += 0x40;
         }
         if( !merkle_verifier.parse_verify_merkle_proof_bytes_be(blob, proof_offset, leaf, offset2 - 0x20 )){
             return false;
         } else {
             return true;
         }
+}
     }
 
     function colinear_check(uint256 x, uint256[2] memory y, uint256 alpha, uint256 colinear_value) internal pure returns(bool){
+
+unchecked {
         uint256 tmp;
         tmp = addmod(y[0], y[1], modulus);
         tmp = mulmod(tmp, x, modulus);
         tmp = addmod(
-            tmp, 
+            tmp,
             mulmod(
                 alpha,
-                addmod(y[0], modulus-y[1], modulus), 
+                addmod(y[0], modulus-y[1], modulus),
                 modulus
             ),
             modulus
@@ -410,17 +420,198 @@ library modular_commitment_scheme_gates {
             return false;
         }
         return true;
+}
     }
 
     function verify_eval(
         bytes calldata blob,
-        uint256[5] memory commitments,                   
+        uint256[5] memory commitments,
         uint256 challenge,
         bytes32 transcript_state
     ) internal view returns (bool){
+
+unchecked {
         types.transcript_data memory tr_state;
         tr_state.current_challenge = transcript_state;
         commitment_state memory state;
+
+        		{
+			uint256 poly_at_eta;
+			/* 1 - 2*permutation_size */
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 40);// 0
+			if(poly_at_eta != 0x1ab53c52f66c3448cb40e39848ce7f97903566acd0ba920c8c6496f420ddc3d9) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x68);// 0x1
+			if(poly_at_eta != 0x58a2d9ed01d056bf84471f96c087df58c7dcf68010ae8078b9c90eaa454d33b) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xa8);// 0x2
+			if(poly_at_eta != 0x1bb2e41a10911b1bd95639df1c2a75cbbe750d0805368825ba0ed49535a82027) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xe8);// 0x3
+			if(poly_at_eta != 0xa7e748252d5878b3eaf215b8cd44cfa73bc0f300776b6856fefc5100c48a0c1) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x128);// 0x4
+			if(poly_at_eta != 0x3478468b9e2ba5b8396ba6c9c02580e442ac4bf02551909b2faed9503d6b23c5) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x168);// 0x5
+			if(poly_at_eta != 0x65960ba16da3c991f1a41f0c0bb8474c44317c09563ee9989b57add3317b2d5) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1a8);// 0x6
+			if(poly_at_eta != 0x1fbee3a272432efd9b8349b3c3a99647d54f76c2eaf3a8ffb08b6651ff767e29) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1e8);// 0x7
+			if(poly_at_eta != 0x1eba722c3b4feaf409907082d24fef66e6001fd684285ac7405e9dbffd5076cb) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x228);// 0x8
+			if(poly_at_eta != 0x19a43add288f96c42fd2328e1b8fad0239736d38822fd3ad0f7eb2e5f29251f5) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x268);// 0x9
+			if(poly_at_eta != 0x352651cacdf1d4ef1afcc689ce610adab3f0227855302a1b1f1ca3bcdb99c7) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x2a8);// 0xa
+			if(poly_at_eta != 0x109bf98f605b928ab86efe0b107e5364583b0ac59a9f0d2879b8f32b04a00e3) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x2e8);// 0xb
+			if(poly_at_eta != 0x530bdfcce1c9dcb59a2af6375277a0f5b92735dc051b41ca609cbfd7172046f) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x328);// 0xc
+			if(poly_at_eta != 0x19f3b5f0068f14f8c02d6cf149c5624cc9dc40d4c198848f3e30fbf3373a162b) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x368);// 0xd
+			if(poly_at_eta != 0x1c28db020cb68dbc0e320b670daeb7facc0122fb560a495049a89e614226ed5) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x3a8);// 0xe
+			if(poly_at_eta != 0x8ccc470a3f90c4ac46fa3903446997e5fc05aee8ae336e91704b17e64ac2a29) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x3e8);// 0xf
+			if(poly_at_eta != 0x2bffd63333dd3d75d62e31d10560ff77dec1c6a8b670128d73177777f75cd2cd) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x428);// 0x10
+			if(poly_at_eta != 0x1bff2f000352334d2ee6f9151ae4fd56f2f516577449717073edc290d4d01dfe) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x468);// 0x11
+			if(poly_at_eta != 0xbfbeb00109b0081ea82dd698678f2b27a3c3dbd32d544fb114a6afa281095f4) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x4a8);// 0x12
+			if(poly_at_eta != 0x3beb970053070289948e530fa05cbd7c632d34b1fe2a58e7567416e2c852edc4) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x4e8);// 0x13
+			if(poly_at_eta != 0x2b99f3019f230cafe6c79f4e21cfb36d66c7a389d19fd8164b8faeb9e99ea4d0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x528);// 0x14
+			if(poly_at_eta != 0x1a01bf081baf3f6f81e61c86a90e81229b1266bcfc384d1cae46d6da9019380d) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x568);// 0x15
+			if(poly_at_eta != 0x1970d3fdd603c39fe868337b80502efa9d3e73aa6789d837095a484335bbda76) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x5a8);// 0x16
+			if(poly_at_eta != 0x1e3943a89a4d3fe76a143f25837abdcc688393526d924c4c57b44b6f52c93385) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x5e8);// 0x17
+			if(poly_at_eta != 0x1155b08c6aa722422909c2df8a18900d748cbb18b183fbe9c2a9b785f28288f5) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x628);// 0x18
+			if(poly_at_eta != 0x2e1dbf4ee62b03554e8813997bf3d088893cab5a8eaa83d59d3016341f10949a) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x668);// 0x19
+			if(poly_at_eta != 0x3478468b9e2ba5b8396ba6c9c02580e442ac4bf02551909b2faed9503d6b23c5) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x6a8);// 0x1a
+			if(poly_at_eta != 0x65960ba16da3c991f1a41f0c0bb8474c44317c09563ee9989b57add3317b2d5) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x6e8);// 0x1b
+			if(poly_at_eta != 0x1fbee3a272432efd9b8349b3c3a99647d54f76c2eaf3a8ffb08b6651ff767e29) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x728);// 0x1c
+			if(poly_at_eta != 0x1eba722c3b4feaf409907082d24fef66e6001fd684285ac7405e9dbffd5076cb) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x768);// 0x1d
+			if(poly_at_eta != 0x19a43add288f96c42fd2328e1b8fad0239736d38822fd3ad0f7eb2e5f29251f5) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x7a8);// 0x1e
+			if(poly_at_eta != 0x352651cacdf1d4ef1afcc689ce610adab3f0227855302a1b1f1ca3bcdb99c7) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x7e8);// 0x1f
+			if(poly_at_eta != 0x109bf98f605b928ab86efe0b107e5364583b0ac59a9f0d2879b8f32b04a00e3) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x828);// 0x20
+			if(poly_at_eta != 0x530bdfcce1c9dcb59a2af6375277a0f5b92735dc051b41ca609cbfd7172046f) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x868);// 0x21
+			if(poly_at_eta != 0x19f3b5f0068f14f8c02d6cf149c5624cc9dc40d4c198848f3e30fbf3373a162b) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x8a8);// 0x22
+			if(poly_at_eta != 0x1c28db020cb68dbc0e320b670daeb7facc0122fb560a495049a89e614226ed5) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x8e8);// 0x23
+			if(poly_at_eta != 0x8ccc470a3f90c4ac46fa3903446997e5fc05aee8ae336e91704b17e64ac2a29) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x928);// 0x24
+			if(poly_at_eta != 0x2f536d7a811d016295da0972a92ad7a5342fd20c2bb1b2e68c8bb977b22b5be1) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x968);// 0x25
+			if(poly_at_eta != 0x1bff2f000352334d2ee6f9151ae4fd56f2f516577449717073edc290d4d01dfe) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x9a8);// 0x26
+			if(poly_at_eta != 0x3d8bf40c0a48bbd73aced064f6f059eebbb50ef5934da146c97a2a70c3026db6) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x9e8);// 0x27
+			if(poly_at_eta != 0x3beb970053070289948e530fa05cbd7c632d34b1fe2a58e7567416e2c852edc4) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xa28);// 0x28
+			if(poly_at_eta != 0x2b99f3019f230cafe6c79f4e21cfb36d66c7a389d19fd8164b8faeb9e99ea4d0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xa68);// 0x29
+			if(poly_at_eta != 0x1a01bf081baf3f6f81e61c86a90e81229b1266bcfc384d1cae46d6da9019380d) return false;
+			/* 2 - special selectors */
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xac8);// 0x2a
+			if(poly_at_eta != 0x7e1612de503965778bd2df8a79c432b391bdf9f8f079b8119224b35afde5c2a) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xb28);// 0x2b
+			if(poly_at_eta != 0x23953533fbe686ecb637e0bd217f6d2d51ba81b7f624433d3a433c4f8e00c2fc) return false;
+			/* 3 - constant columns */
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xb68);// 0x2c
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xba8);// 0x2d
+			if(poly_at_eta != 0x27d3c8bf66225d286f4b2acbf3d6b64aa1687a399c639ffe7b98334360788f14) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xbe8);// 0x2e
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xc28);// 0x2f
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xc68);// 0x30
+			if(poly_at_eta != 0x0) return false;
+			/* 4 - selector columns */
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xca8);// 0x31
+			if(poly_at_eta != 0x18dc8f2a5658f34bf61c7ca7002761eafb6713b92177ecfa939c1805ea27a8a4) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xce8);// 0x32
+			if(poly_at_eta != 0x3f9c8f9318a76775381c0def8711db7af4435e98c042f7d6a4bdcc3c91b9a46) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xd28);// 0x33
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xd68);// 0x34
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xda8);// 0x35
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xde8);// 0x36
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xe28);// 0x37
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xe68);// 0x38
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xea8);// 0x39
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xee8);// 0x3a
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xf28);// 0x3b
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xf68);// 0x3c
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xfa8);// 0x3d
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0xfe8);// 0x3e
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1028);// 0x3f
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1068);// 0x40
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x10a8);// 0x41
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x10e8);// 0x42
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1128);// 0x43
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1168);// 0x44
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x11a8);// 0x45
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x11e8);// 0x46
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1228);// 0x47
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1268);// 0x48
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x12a8);// 0x49
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x12e8);// 0x4a
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1328);// 0x4b
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1368);// 0x4c
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x13a8);// 0x4d
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x13e8);// 0x4e
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1428);// 0x4f
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1468);// 0x50
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x14a8);// 0x51
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x14e8);// 0x52
+			if(poly_at_eta != 0x0) return false;
+			poly_at_eta = basic_marshalling.get_uint256_be(blob, 0x1528);// 0x53
+			if(poly_at_eta != 0x0) return false;
+		}
+
+
         {
             uint256 offset;
 
@@ -428,71 +619,66 @@ library modular_commitment_scheme_gates {
 
             for(uint8 i = 0; i < batches_num;){
                 transcript.update_transcript_b32(tr_state, bytes32(commitments[i]));
-                unchecked{i++;}
+                i++;
             }
             state.theta = transcript.get_field_challenge(tr_state, modulus);
 
             state.points_num = basic_marshalling.get_length(blob, 0x0);
-            unchecked{
-                offset = 0x8 + state.points_num*0x20 + 0x8;
-            }
+            offset = 0x8 + state.points_num*0x20 + 0x8;
             for(uint8 i = 0; i < batches_num;){
                 state.batch_sizes[i] = uint64(uint8(blob[offset + 0x1]));
                 if( state.batch_sizes[i] > state.max_batch ) state.max_batch = state.batch_sizes[i];
                 state.poly_num += state.batch_sizes[i];
-                unchecked { i++; offset +=2;}
+                i++; offset +=2;
             }
-            unchecked{
-                offset += 0x8;
-                offset += state.poly_num;
-                state.roots_offset = offset + 0x8;
-                offset += 0x8;
-            }
+
+            offset += 0x8;
+            offset += state.poly_num;
+            state.roots_offset = offset + 0x8;
+            offset += 0x8;
+
             for( uint8 i = 0; i < r;){
                 transcript.update_transcript_b32(tr_state, bytes32(basic_marshalling.get_uint256_be(blob, offset + 0x8)));
                 state.alphas[i] = transcript.get_field_challenge(tr_state, modulus);
-                unchecked{i++; offset +=40; }
+                i++; offset +=40;
             }
 
             
-                        
-            unchecked{
-                offset += 0x8 + r;
-                state.initial_data_offset = offset + 0x8;
-                offset += 0x8 + 0x20*basic_marshalling.get_length(blob, offset);
-            }
 
-            unchecked{
-                state.round_data_offset = offset + 0x8;
-                offset += 0x8 + 0x20*basic_marshalling.get_length(blob, offset);
-                offset += 0x8;
-            }
-            state.initial_proof_offset = offset; 
+            offset += 0x8 + r;
+            state.initial_data_offset = offset + 0x8;
+            offset += 0x8 + 0x20*basic_marshalling.get_length(blob, offset);
+
+            state.round_data_offset = offset + 0x8;
+            offset += 0x8 + 0x20*basic_marshalling.get_length(blob, offset);
+            offset += 0x8;
+
+            state.initial_proof_offset = offset;
             for(uint8 i = 0; i < lambda;){
                 for(uint j = 0; j < batches_num;){
                     if(basic_marshalling.get_uint256_be(blob, offset + 0x10) != commitments[j] ) return false;
                     offset = merkle_verifier.skip_merkle_proof_be(blob, offset);
-                    unchecked{j++;}
+                    j++;
                 }
-                unchecked{i++;}
+                i++;
             }
             offset += 0x8;
             state.round_proof_offset = offset;
 
             for(uint256 i = 0; i < lambda;){
                 for(uint256 j = 0; j < r;){
-                    if(basic_marshalling.get_uint256_be(blob, offset + 0x10) != basic_marshalling.get_uint256_be(blob, state.roots_offset + j * 40 + 0x8) ) return false;                
+                    if(basic_marshalling.get_uint256_be(blob, offset + 0x10) != basic_marshalling.get_uint256_be(blob, state.roots_offset + j * 40 + 0x8) ) return false;
                     offset = merkle_verifier.skip_merkle_proof_be(blob, offset);
-                    unchecked{j++;}
+                    j++;
                 }
-                unchecked{i++;}
+                i++;
             }
 
             state.final_polynomial = new uint256[](basic_marshalling.get_length(blob, offset));
-            unchecked{offset += 0x8;}
+            offset += 0x8;
             for (uint256 i = 0; i < state.final_polynomial.length;) {
                 state.final_polynomial[i] = basic_marshalling.get_uint256_be(blob, offset);
-                unchecked{ i++; offset+=0x20;}
+                i++; offset+=0x20;
             }
         }
         if( state.final_polynomial.length > (( 1 << (field.log2(max_degree + 1) - r + 1) ) ) ){
@@ -523,7 +709,7 @@ library modular_commitment_scheme_gates {
                 state.leaf_length = state.batch_sizes[j] * 0x40;
                 state.initial_data_offset += state.batch_sizes[j] * 0x40;
                 state.initial_proof_offset = merkle_verifier.skip_merkle_proof_be(blob, state.initial_proof_offset);
-                unchecked{j++;}
+                j++;
             }
             {
                 state.y = compute_combined_Q(blob, state);
@@ -546,9 +732,9 @@ library modular_commitment_scheme_gates {
 
             state.round_proof_offset = merkle_verifier.skip_merkle_proof_be(blob, state.round_proof_offset);
             for(state.j = 1; state.j < r;){
-                state.x_index %= state.domain_size; 
+                state.x_index %= state.domain_size;
                 state.x = mulmod(state.x, state.x, modulus);
-                state.domain_size >>= 1;                   
+                state.domain_size >>= 1;
                 if( state.x_index < state.domain_size ){
                     if(!copy_pairs_and_check(blob, state.round_data_offset, state.leaf_data, 1, state.round_proof_offset)) {
                         console.log("Error in round mekle proof");
@@ -566,7 +752,7 @@ library modular_commitment_scheme_gates {
                     console.log("Round colinear check failed");
                     return false;
                 }
-                unchecked{state.j++; state.round_data_offset += 0x40;}
+                state.j++; state.round_data_offset += 0x40;
                 state.round_proof_offset = merkle_verifier.skip_merkle_proof_be(blob, state.round_proof_offset);
             }
 
@@ -580,10 +766,11 @@ library modular_commitment_scheme_gates {
                 return false;
             }
             state.round_data_offset += 0x40;
-            
-            unchecked{i++;}
+
+            i++;
         }
         return true;
+}
     }
-}        
+}
     

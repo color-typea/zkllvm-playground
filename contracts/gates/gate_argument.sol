@@ -33,66 +33,71 @@ contract modular_gate_argument_gates is IGateArgument{
     ) external view returns (uint256 F){
         uint256 theta_acc = 1;
         uint256 eval;
+        uint256 x;
 
-		uint256 sum;
 		uint256 prod;
+		uint256 sum;
 		uint256 gate;
-/* -- gate 0 is inlined -- */
+// gate === 0 ===
 		gate = 0;
+// constraint 0
 		sum = 0;
-		prod = 28948022309329048855892746252171976963363056481941560715954676764349967630336;
-		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2624), modulus);
+		prod = basic_marshalling.get_uint256_be(blob, 2624);
+		prod = mulmod(prod, 28948022309329048855892746252171976963363056481941560715954676764349967630336, modulus);
 		sum = addmod(sum, prod, modulus);
 		prod = basic_marshalling.get_uint256_be(blob, 2592);
 		sum = addmod(sum, prod, modulus);
 		prod = basic_marshalling.get_uint256_be(blob, 2560);
 		sum = addmod(sum, prod, modulus);
-		gate = addmod(gate, mulmod(theta_acc, sum, modulus), modulus);
-		theta_acc = mulmod(theta_acc, theta, modulus);
+		sum = mulmod(sum, theta_acc, modulus);
+		theta_acc = mulmod(theta, theta_acc, modulus);
+		gate = addmod(gate, sum, modulus);
 		gate = mulmod(gate, basic_marshalling.get_uint256_be(blob, 320), modulus);
 		F = addmod(F, gate, modulus);
-
-/* -- gate 1 is inlined -- */
+// gate === 1 ===
 		gate = 0;
+// constraint 0
+		/* Constraint is a polynomial over one variable. Using Horner's formula */
+		x = basic_marshalling.get_uint256_be(blob, 2656);
+		sum = x;
+		sum = addmod(sum, 28948022309329048855892746252171976963363056481941560715954676764349967630336, modulus);
+		sum = mulmod(sum, x, modulus);
+		/* End using Horner's formula */
+		sum = mulmod(sum, theta_acc, modulus);
+		theta_acc = mulmod(theta, theta_acc, modulus);
+		gate = addmod(gate, sum, modulus);
+// constraint 1
 		sum = 0;
-		prod = 28948022309329048855892746252171976963363056481941560715954676764349967630336;
-		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2656), modulus);
-		sum = addmod(sum, prod, modulus);
-		prod = basic_marshalling.get_uint256_be(blob, 2656);
-		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2656), modulus);
-		sum = addmod(sum, prod, modulus);
-		gate = addmod(gate, mulmod(theta_acc, sum, modulus), modulus);
-		theta_acc = mulmod(theta_acc, theta, modulus);
-		sum = 0;
-		prod = 28948022309329048855892746252171976963363056481941560715954676764349967630336;
-		sum = addmod(sum, prod, modulus);
+		sum = addmod(sum, 28948022309329048855892746252171976963363056481941560715954676764349967630336, modulus);
 		prod = basic_marshalling.get_uint256_be(blob, 2656);
 		sum = addmod(sum, prod, modulus);
-		prod = 28948022309329048855892746252171976963363056481941560715954676764349967630336;
-		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2592), modulus);
+		prod = basic_marshalling.get_uint256_be(blob, 2592);
 		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2624), modulus);
+		prod = mulmod(prod, 28948022309329048855892746252171976963363056481941560715954676764349967630336, modulus);
 		sum = addmod(sum, prod, modulus);
 		prod = basic_marshalling.get_uint256_be(blob, 2560);
 		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2624), modulus);
 		sum = addmod(sum, prod, modulus);
-		gate = addmod(gate, mulmod(theta_acc, sum, modulus), modulus);
-		theta_acc = mulmod(theta_acc, theta, modulus);
+		sum = mulmod(sum, theta_acc, modulus);
+		theta_acc = mulmod(theta, theta_acc, modulus);
+		gate = addmod(gate, sum, modulus);
+// constraint 2
 		sum = 0;
 		prod = basic_marshalling.get_uint256_be(blob, 2592);
 		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2656), modulus);
 		sum = addmod(sum, prod, modulus);
-		prod = 28948022309329048855892746252171976963363056481941560715954676764349967630336;
-		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2560), modulus);
+		prod = basic_marshalling.get_uint256_be(blob, 2560);
 		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2656), modulus);
+		prod = mulmod(prod, 28948022309329048855892746252171976963363056481941560715954676764349967630336, modulus);
 		sum = addmod(sum, prod, modulus);
 		prod = basic_marshalling.get_uint256_be(blob, 2624);
 		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2656), modulus);
 		sum = addmod(sum, prod, modulus);
-		gate = addmod(gate, mulmod(theta_acc, sum, modulus), modulus);
-		theta_acc = mulmod(theta_acc, theta, modulus);
+		sum = mulmod(sum, theta_acc, modulus);
+		theta_acc = mulmod(theta, theta_acc, modulus);
+		gate = addmod(gate, sum, modulus);
 		gate = mulmod(gate, basic_marshalling.get_uint256_be(blob, 384), modulus);
 		F = addmod(F, gate, modulus);
-
 
     }
 }        

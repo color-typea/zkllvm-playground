@@ -29,11 +29,11 @@ import "./permutation_argument.sol";
 import "hardhat/console.sol";
 import "@nilfoundation/evm-placeholder-verification/contracts/algebra/field.sol";
 
-contract modular_verifier_gates is IModularVerifier{
+contract modular_verifier_multiplication is IModularVerifier{
     uint256 constant modulus = 28948022309329048855892746252171976963363056481941560715954676764349967630337;
     bool    constant use_lookups = false;
-    bytes32 constant vk1 = bytes32(0x22b77f29a50a0f7746178a1839a3b21dbe2161a481f325479727f8e2eb18178a);
-    bytes32 constant vk2 = bytes32(0x49d703f693af447c6b42e9d6a56ea320ad5d720fa665607159059a15042027ce);
+    bytes32 constant vk1 = bytes32(0x8f6d5a90e6e88328459f6ec64d0cdcc99c6099bda77181eda73cc601e461fa9b);
+    bytes32 constant vk2 = bytes32(0x3d5fe83d8c3e4766eb7902dc62a97c3df823b8c66e13828c1b20782362c584e5);
     bytes32 transcript_state;
     address _gate_argument_address;
     address _permutation_argument_address;
@@ -45,8 +45,8 @@ contract modular_verifier_gates is IModularVerifier{
     uint64  constant table_offset = z_offset + 0x80 * 21 + 0xc0;
     uint64  constant table_end_offset = table_offset + 3072;
     uint64  constant quotient_offset = 3136;
-    uint64  constant rows_amount = 32;
-    uint256 constant omega = 3612152772817685532768635636100598085437510685224817206515049967552954106764;
+    uint64  constant rows_amount = 8;
+    uint256 constant omega = 199455130043951077247265858823823987229570523056509026484192158816218200659;
     uint256 constant special_selectors_offset = z_offset + 21 * 0x80;
 
     function initialize(
@@ -67,7 +67,7 @@ contract modular_verifier_gates is IModularVerifier{
 
 //        ICommitmentScheme commitment_scheme = ICommitmentScheme(commitment_contract_address);
 //        tr_state.current_challenge = commitment_scheme.initialize(tr_state.current_challenge);
-        tr_state.current_challenge = modular_commitment_scheme_gates.initialize(tr_state.current_challenge);
+        tr_state.current_challenge = modular_commitment_scheme_multiplication.initialize(tr_state.current_challenge);
         transcript_state = tr_state.current_challenge;
     }
 
@@ -153,7 +153,7 @@ contract modular_verifier_gates is IModularVerifier{
             transcript.update_transcript_b32_by_offset_calldata(tr_state, blob, 0x9);
 
             //3. Permutation argument
-            uint256[3] memory permutation_argument = modular_permutation_argument_gates.verify(
+            uint256[3] memory permutation_argument = modular_permutation_argument_multiplication.verify(
                 blob[0xa1:3041+3136],
                 transcript.get_field_challenge(tr_state, modulus),
                 transcript.get_field_challenge(tr_state, modulus),
@@ -211,7 +211,7 @@ contract modular_verifier_gates is IModularVerifier{
                 commitments[i] = basic_marshalling.get_uint256_be(blob, 0x9 + (i-1)*(0x28));
                 unchecked{i++;}
             }
-            if(!modular_commitment_scheme_gates.verify_eval(
+            if(!modular_commitment_scheme_multiplication.verify_eval(
                 blob[z_offset - 0x8:], commitments, state.xi, tr_state.current_challenge
             )) {
                 console.log("Error from commitment scheme!");

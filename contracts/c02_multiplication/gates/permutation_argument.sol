@@ -23,7 +23,7 @@ import "@nilfoundation/evm-placeholder-verification/contracts/types.sol";
 import "@nilfoundation/evm-placeholder-verification/contracts/basic_marshalling.sol";
 import "hardhat/console.sol";
 
-library modular_permutation_argument_gates{
+library modular_permutation_argument_multiplication{
     uint256 constant modulus = 28948022309329048855892746252171976963363056481941560715954676764349967630337;
     uint256 constant permutation_size = 21;
     uint256 constant special_selectors_offset = 21 * 0x80;

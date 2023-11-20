@@ -23,7 +23,7 @@ import "@nilfoundation/evm-placeholder-verification/contracts/interfaces/modular
 import "hardhat/console.sol";
 
 
-contract modular_gate_argument_gates is IGateArgument{
+contract modular_gate_argument_multiplication is IGateArgument{
     uint256 constant modulus = 28948022309329048855892746252171976963363056481941560715954676764349967630337;
 
     // Append commitments
@@ -45,9 +45,8 @@ contract modular_gate_argument_gates is IGateArgument{
 		prod = basic_marshalling.get_uint256_be(blob, 2624);
 		prod = mulmod(prod, 28948022309329048855892746252171976963363056481941560715954676764349967630336, modulus);
 		sum = addmod(sum, prod, modulus);
-		prod = basic_marshalling.get_uint256_be(blob, 2592);
-		sum = addmod(sum, prod, modulus);
 		prod = basic_marshalling.get_uint256_be(blob, 2560);
+		prod = mulmod(prod, basic_marshalling.get_uint256_be(blob, 2592), modulus);
 		sum = addmod(sum, prod, modulus);
 		sum = mulmod(sum, theta_acc, modulus);
 		theta_acc = mulmod(theta, theta_acc, modulus);

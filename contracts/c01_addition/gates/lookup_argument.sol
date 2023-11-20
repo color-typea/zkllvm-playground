@@ -18,5 +18,5 @@
 //---------------------------------------------------------------------------//
 pragma solidity >=0.8.4;
 
-library modular_lookup_argument_gates{
+library modular_lookup_argument_addition{
 }

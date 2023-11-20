@@ -83,7 +83,7 @@ codegen-circuit-params: circuit-gen-circuit-params
 	. ${PYTHON_VIRTUALENV}/bin/activate && python3 codegen/codegen_circuit_params.py
 
 rewrite-gates: circuit-transpile
-	find ${GATES_DIR} -type f -name *.sol -exec	sed -i  -e 's_../../_@nilfoundation/evm-placeholder-verification/contracts/_g' {} \;
+	find ${GATES_DIR} -type f -name *.sol -exec sed -i -e 's_../../_@nilfoundation/evm-placeholder-verification/contracts/_g' {} \;
 
 move-gates: circuit-transpile rewrite-gates
 	rm -rf ${CONTRACTS_DIR}/gates
@@ -130,9 +130,9 @@ deploy: prepare_artifacts
 prepare-env: deploy prepare-statement
 
 test-fast: 
-	npx hardhat test
+	npx hardhat test --parallel
 	
-test: prepare-artifacts test-fast
+test: test-fast
 
 test-in-evm-placeholder: rm-gates circuit-assign circuit-transpile generate-proof-local
 	rm -f ${EVM_PLACEHOLDER_VERIFICATION}/contracts/zkllvm/gates/*

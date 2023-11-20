@@ -3,7 +3,7 @@ pragma solidity >=0.8 <0.9;
 
 import "@nilfoundation/evm-placeholder-verification/contracts/interfaces/modular_verifier.sol";
 
-contract VerificationContract {
+contract addition_contract {
     struct OracleReport {
         uint256 sum;
     }

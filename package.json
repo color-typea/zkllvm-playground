@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@nilfoundation/evm-placeholder-verification": "1.1.2",
-    "solidity-math": "^0.1.0"
+    "solidity-math": "^0.1.0",
+    "soltypes": "^2.0.0"
   }
 }

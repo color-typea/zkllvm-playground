@@ -1,7 +1,9 @@
 import * as hre from 'hardhat';
-import { uint256 } from "solidity-math";
+import { Uint, uint128 } from "solidity-math";
 import {expect} from "chai";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
+import { createHash } from 'crypto';
+import { BigNumberish } from 'ethers';
 
 
 import { ProofGeneratorCLIProofProducer } from '../utils/proof_gen';
@@ -26,11 +28,11 @@ interface HashType {
 function identity(x: any) { return x; }
 
 function readUint128FromBuffer(buffer: Buffer, offset_bytes: number) {
-    let result = uint256(0);
-    result.ior(uint256(buffer.readUInt32LE(offset_bytes + 0)).shln(0));
-    result.ior(uint256(buffer.readUInt32LE(offset_bytes + 4)).shln(4 * 8));
-    result.ior(uint256(buffer.readUInt32LE(offset_bytes + 8)).shln(8 * 8));
-    result.ior(uint256(buffer.readUInt32LE(offset_bytes + 12)).shln(12 * 8));
+    let result = uint128(0);
+    result.ior(uint128(buffer.readUInt32LE(offset_bytes + 0)).shln(0));
+    result.ior(uint128(buffer.readUInt32LE(offset_bytes + 4)).shln(4 * 8));
+    result.ior(uint128(buffer.readUInt32LE(offset_bytes + 8)).shln(8 * 8));
+    result.ior(uint128(buffer.readUInt32LE(offset_bytes + 12)).shln(12 * 8));
     return result;
 }
 
@@ -50,9 +52,14 @@ export abstract class InputBase {
     }
 
     static asHash(value: Buffer): HashType {
+        if (value.length != 32) { throw new Error(`Buffer must contain exactly 32 bytes, got ${value.length}`)}
         const low = readUint128FromBuffer(value, 0);
         const high = readUint128FromBuffer(value, 16);
         return { vector: [{ field: low.toString() }, { field: high.toString() }] };
+    }
+
+    static hexStringAsHash(value: string): HashType {
+        return this.asHash(Buffer.from(value, 'hex'));
     }
 
     protected static truncate<T>(value: T[], maxLen?: number): T[] {
@@ -65,7 +72,7 @@ export abstract class InputBase {
 
 export interface CircuitInput {
     serializeFullForProofGen(): any[];
-    serializePublicForContract(): any[]
+    serializePublicForContract(): BigNumberish[]
     getReport(): object;
 }
 
@@ -103,4 +110,16 @@ export async function runTest(
     } finally {
         proofProducer.cleanup();
     }
+}
+
+export function uint256ToBuffer32(value: Uint, littleEndian: boolean = true): Buffer {
+    return value.bn.toBuffer(littleEndian ? 'le': 'be', 32);
+}
+
+export function computeSHA256Hash(a: Uint, b: Uint): string {
+    const buffer = Buffer.concat([a.bn.toBuffer('le', 32), b.bn.toBuffer('le', 32)]);
+
+    if (buffer.length != 64) { throw new Error(`Buffer should contain exactly 64 bytes, got ${buffer.length}`)};
+
+    return createHash('sha256').update(buffer).digest('hex');
 }

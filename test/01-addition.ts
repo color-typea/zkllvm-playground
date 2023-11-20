@@ -1,5 +1,6 @@
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {prepareTest, CircuitInput, InputBase, runTest} from "./test_utils";
+import { BigNumberish } from "ethers";
 
 export class CircuitInputClass extends InputBase implements CircuitInput {
     constructor(
@@ -18,7 +19,7 @@ export class CircuitInputClass extends InputBase implements CircuitInput {
         ];
     }
 
-    serializePublicForContract(): any[] {
+    serializePublicForContract(): BigNumberish[] {
         return [
             this.a,
             this.b,

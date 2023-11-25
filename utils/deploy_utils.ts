@@ -31,7 +31,7 @@ export class DeployFactory {
         return await this.deploy(contract, readGateLibs(libs_json), args);
     }
 
-    async deploy(contract: string, dependecies: Array<string>, args: any[] = []) {
+    async deploy(contract: string, dependecies: Array<string>, args: any[] = [], name: string|null = null) {
         let deployedLibs: Libraries = {}
         for (let lib of dependecies){
             await this.deployments.deploy(lib, {
@@ -40,22 +40,24 @@ export class DeployFactory {
             });
             deployedLibs[lib] = (await this.deployments.get(lib)).address;
         }
-        await this.deployments.deploy(contract, {
+        const deployName = name ?? contract;
+        await this.deployments.deploy(deployName, {
             args: args,
             from: this.deployer,
             libraries : deployedLibs,
             log : true,
-            gasLimit: 50000000000
+            gasLimit: 50000000000,
+            contract: contract
         });
     
-        const contractAddress = await this.deployments.get(contract);
-        LOGGER.info(`Deployed ${contract} at ${contractAddress.address}`);
+        const contractAddress = await this.deployments.get(deployName);
+        LOGGER.debug(`Deployed ${contract} as ${deployName} at ${contractAddress.address}`);
         return contractAddress;
     }
 }
 
 export class ContractGroupDeployer {
-    constructor(private hre: HardhatRuntimeEnvironment, private circuitName: string, private path: string) {}
+    constructor(private hre: HardhatRuntimeEnvironment, private circuitName: string, private path: string, private use_generic: boolean) {}
 
     async deploy(factory: DeployFactory): Promise<FixtureOutput> {
         LOGGER.info(`Deploying ${this.circuitName} at ${this.path}`);
@@ -75,21 +77,24 @@ export class ContractGroupDeployer {
             commitment.address,
         );
 
-        await factory.deploy(`${circuit}_contract`, [], [modularVerifier.address]);
-        const contract = await this.hre.ethers.getContract<Contract>(`${circuit}_contract`);
+        const deployName = `${circuit}_contract`;
+        const contractName = this.use_generic ? "generic_verification_contract" : deployName;
+
+        await factory.deploy(contractName, [], [modularVerifier.address], deployName);
+        const contract = await this.hre.ethers.getContract<Contract>(deployName);
         return {
             contract
         }
     }
 }
 
-export async function runDeploy(hre: HardhatRuntimeEnvironment, name: string, path: string): Promise<FixtureOutput> {
+export async function runDeploy(hre: HardhatRuntimeEnvironment, name: string, path: string, useDefault: boolean = true): Promise<FixtureOutput> {
     const {getNamedAccounts} = hre;
     const {deployer} = await getNamedAccounts();
     LOGGER.info(`--- Starting deploying ${name} contract group as ${deployer} ---`);
 
     const factory = new DeployFactory(hre.deployments, deployer);
-    const groupDeployer = new ContractGroupDeployer(hre, name, path);
+    const groupDeployer = new ContractGroupDeployer(hre, name, path, useDefault);
     const result = await groupDeployer.deploy(factory);
     LOGGER.info(`--- Finished deploying ${name} contract group ---`);
     return result;

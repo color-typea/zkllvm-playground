@@ -16,3 +16,4 @@ auth.json
 
 .idea
 .vscode
+contracts/**/gates

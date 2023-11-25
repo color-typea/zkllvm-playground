@@ -20,7 +20,7 @@
     "tmp": "^0.2.1"
   },
   "dependencies": {
-    "@nilfoundation/evm-placeholder-verification": "1.1.2",
+    "@nilfoundation/evm-placeholder-verification": "^1.1.2",
     "solidity-math": "^0.1.0",
     "soltypes": "^2.0.0"
   }

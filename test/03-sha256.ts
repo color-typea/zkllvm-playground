@@ -31,11 +31,9 @@ class CircuitInputClass extends InputBase implements CircuitInput {
             '0x'+this.expected_hash
         ];
     }
-
-    getReport(): object {
-        return { expected_hash: '0x'+this.expected_hash };
-    }
 }
+
+// function uintToInputBLock
 
 describe("Sha256", async function () {
     const circuit = 'sha256';

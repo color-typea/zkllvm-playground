@@ -21,14 +21,8 @@ class CircuitInputClass extends InputBase implements CircuitInput {
 
     serializePublicForContract(): BigNumberish[] {
         return [
-            this.a,
-            this.b,
             this.mul,
         ];
-    }
-
-    getReport(): object {
-        return { mul: this. mul };
     }
 }
 

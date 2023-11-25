@@ -21,14 +21,8 @@ export class CircuitInputClass extends InputBase implements CircuitInput {
 
     serializePublicForContract(): BigNumberish[] {
         return [
-            this.a,
-            this.b,
             this.sum,
         ];
-    }
-
-    getReport(): object {
-        return { sum: this. sum };
     }
 }
 

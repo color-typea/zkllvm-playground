@@ -4,11 +4,7 @@ pragma solidity >=0.8 <0.9;
 import "@nilfoundation/evm-placeholder-verification/contracts/interfaces/modular_verifier.sol";
 
 contract multiplication_contract {
-    struct OracleReport {
-        uint256 mul;
-    }
-
-    struct OracleProof {
+    struct Proof {
         uint256[] public_input;
         bytes zkProof;
     }
@@ -21,15 +17,13 @@ contract multiplication_contract {
     }
 
     function submitReportData(
-        OracleReport calldata report,
-        OracleProof calldata proof
+        Proof calldata proof
     ) public view returns (bool) {
-        return verifyZKLLVMProof(report, proof);
+        return verifyZKLLVMProof(proof);
     }
 
     function verifyZKLLVMProof(
-        OracleReport memory report,
-        OracleProof memory proof
+        Proof memory proof
     ) internal view returns (bool) {
         return verifier.verify(
             proof.zkProof,

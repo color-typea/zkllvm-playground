@@ -73,7 +73,6 @@ export abstract class InputBase {
 export interface CircuitInput {
     serializeFullForProofGen(): any[];
     serializePublicForContract(): BigNumberish[]
-    getReport(): object;
 }
 
 type TestOptions = { returnValue?: boolean, reverts?: boolean };
@@ -81,12 +80,11 @@ type TestOptions = { returnValue?: boolean, reverts?: boolean };
 const LOGGER = getLogger(LogLevels.CONTRACT_INTERACTION);
 
 export async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buffer): Promise<boolean> {
-    const report = input.getReport();
     const proof = {
         public_input: input.serializePublicForContract(),
         zkProof: zkProof,
     };
-    return await contract.submitReportData(report, proof, {gasLimit: 30_500_000});
+    return await contract.submitReportData(proof, {gasLimit: 30_500_000});
 }
 
 export async function runTest(

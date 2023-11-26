@@ -15,8 +15,8 @@ class CircuitInputClass extends InputBase implements CircuitInput {
     serializeFullForProofGen(): any[] {
         const result = [
             InputBase.asHash(this.a),
-            // InputBase.hexStringAsHash(this.b),
-            // InputBase.hexStringAsHash(this.expected_hash),
+            InputBase.asHash(this.b),
+            InputBase.asHash(this.expected_hash),
         ];
         // console.log("Serialized for proof generator", JSON.stringify(result));
         return result;
@@ -26,14 +26,14 @@ class CircuitInputClass extends InputBase implements CircuitInput {
         return [
             // '0x'+this.a.toString('hex'),
             // '0x'+this.b,
-            // '0x'+this.expected_hash
+            // '0x'+this.expected_hash.toString('hex')
         ];
     }
 }
 
 
 
-describe("Addition", async function () {
+describe("Playground", async function () {
     const circuit = 'playground';
     const fixture = `${circuit}_fixture`;
     const contractName = `${circuit}_contract`;
@@ -45,10 +45,14 @@ describe("Addition", async function () {
         
     describe("valid input", async function () {
        it("runs successfully", async () => {
-            // const a = uint256(1).add(uint256(1).shln(128));
-            const a = uint256(1234567);
+            // const a = uint256(255);
+            const a = uint256(255).shln(16*8).add(255);
             const b = uint256(0);
             const expected_hash = computeSHA256Hash(a, b);
+            // const expected_hash = Buffer.from(
+            //     '8a023a9e4affbb255a6b48ae85cc4a7d1a1b9e8e6809fe9e48535c01c1fc071a',
+            //     'hex'
+            // );
             const input = new CircuitInputClass(
                 uint256ToBuffer32(a),
                 uint256ToBuffer32(b),

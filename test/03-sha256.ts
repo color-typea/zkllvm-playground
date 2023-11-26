@@ -1,24 +1,23 @@
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {prepareTest, CircuitInput, InputBase, runTest, computeSHA256Hash, uint256ToBuffer32} from "./test_utils";
 import {expect} from "chai";
-import { uint256 } from "solidity-math";
-import { BigNumberish, ethers } from "ethers";
-import { DataHexString, HexString } from "ethers/lib.commonjs/utils/data";
+import { Uint, uint256 } from "solidity-math";
+import { BigNumberish } from "ethers";
 
 class CircuitInputClass extends InputBase implements CircuitInput {
     constructor(
-        public a: DataHexString,
-        public b: DataHexString,
-        public expected_hash: DataHexString,
+        public a: Buffer,
+        public b: Buffer,
+        public expected_hash: Buffer,
     ) {
         super();
     }
 
     serializeFullForProofGen(): any[] {
         const result = [
-            InputBase.hexStringAsHash(this.a),
-            InputBase.hexStringAsHash(this.b),
-            InputBase.hexStringAsHash(this.expected_hash),
+            InputBase.asHash(this.a),
+            InputBase.asHash(this.b),
+            InputBase.asHash(this.expected_hash),
         ];
         // console.log("Serialized for proof generator", JSON.stringify(result));
         return result;
@@ -26,14 +25,16 @@ class CircuitInputClass extends InputBase implements CircuitInput {
 
     serializePublicForContract(): BigNumberish[] {
         return [
-            '0x'+this.a,
-            '0x'+this.b,
-            '0x'+this.expected_hash
+            // '0x'+this.a.toString('hex'),
+            // '0x'+this.b,
+            // '0x'+this.expected_hash.toString('hex')
         ];
     }
 }
 
-// function uintToInputBLock
+function testLabel(a: Uint, b: Uint, hash: string) {
+    return `sha256(${a.toString(16)}, ${b.toString(16)}) == 0x${hash}`;
+}
 
 describe("Sha256", async function () {
     const circuit = 'sha256';
@@ -47,35 +48,54 @@ describe("Sha256", async function () {
    
     
     describe("valid input", async function () {
+        // this produces a 1 in both high and low field elements in sha256 block
+        const oneInBothFelts = uint256(255).shln(16*8).add(255);
         const tests = [
-            {a: uint256(1), b: uint256(0), hashed: '16abab341fb7f370e27e4dadcf81766dd0dfd0ae64469477bb2cf6614938b2af'},
-            // {a: uint256(1), b: uint256(2), hashed: 'ff55c97976a840b4ced964ed49e3794594ba3f675238b5fd25d282b60f70a194'},
-            // {a: uint256(255).add(uint256(255).shln(16 * 8)), b: uint256(255), hashed: '7509c974164b248d5094a8adb4d1bd6a4641969693f650658160c08f028527bf'},
+            {a: uint256(1), b: uint256(0)},
+            {a: oneInBothFelts, b: uint256(0)},
+            {a: uint256(1), b: uint256(1)},
+            {a: oneInBothFelts, b: uint256(1)},
+
+            {
+                a: uint256("16507339364505767685707796512181655236330077571073020801870589322541997706161"), 
+                b: uint256(0)
+            },
+            {
+                a: uint256("16507339364505767685707796512181655236330077571073020801870589322541997706161"), 
+                b: uint256("2113178988811938236050057805162746832726629554183761089971103915512850086688")
+            },
         ];
 
         for (const test of tests) {
-            const label = `sha256(${test.a}, ${test.b}) == ${test.hashed}`;
+            const hash = computeSHA256Hash(test.a, test.b);
+            const label = testLabel(test.a, test.b, hash.toString('hex'));
             it(label, async function() {
-                const compilationArtifacts = await setupPromise;
-                expect(computeSHA256Hash(test.a, test.b)).to.be.equal(test.hashed);
                 const input = new CircuitInputClass(
-                    uint256ToBuffer32(test.a).toString('hex'),
-                    uint256ToBuffer32(test.b).toString('hex'),
-                    test.hashed,
+                    uint256ToBuffer32(test.a),
+                    uint256ToBuffer32(test.b),
+                    hash
                 );
+                const compilationArtifacts = await setupPromise;
                 await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: true});
             });
         }
     });
     // describe("invalid input", async function () {
     //     const tests = [
-    //         {label: "1 * 2 = 3", input: new CircuitInputClass(1, 2, 3)},
-    //         {label: "2 * 5 = 12", input: new CircuitInputClass(2, 5, 12)},
-    //     ]
+    //         {a: uint256(1), b: uint256(0)},
+    //         {a: uint256(255).shln(16*8).add(255), b: uint256(0)},
+    //     ];
 
     //     for (const test of tests) {
-    //         const {label, input} = test;
+    //         // This is sha256(2, 0)
+    //         const hash = Buffer.from('8a023a9e4affbb255a6b48ae85cc4a7d1a1b9e8e6809fe9e48535c01c1fc071a', 'hex');
+    //         const label = `sha256(${test.a.toString(16)}, ${test.b.toString(16)}) != 0x${hash.toString('hex')}`;
     //         it(label, async function() {
+    //             const input = new CircuitInputClass(
+    //                 uint256ToBuffer32(test.a),
+    //                 uint256ToBuffer32(test.b),
+    //                 hash
+    //             );
     //             const compilationArtifacts = await setupPromise;
     //             await runTest(contractName, compilationArtifacts.compiledCicuit, input, {reverts: true});
     //         });

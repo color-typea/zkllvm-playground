@@ -61,8 +61,7 @@ export abstract class InputBase {
 
     static asHash(value: Buffer, flip: boolean = false): HashType {
         if (value.length != 32) { throw new Error(`Buffer must contain exactly 32 bytes, got ${value.length}`)};
-        console.log(value);
-        const endianness = 'le';
+        const endianness = 'be';
         const source = flip ? value.reverse() : value;
         const low = uint256(readUint128FromBuffer(source, 0, endianness));
         const high = uint256(readUint128FromBuffer(source, 16, endianness));

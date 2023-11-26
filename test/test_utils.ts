@@ -1,9 +1,10 @@
 import * as hre from 'hardhat';
-import { Uint, uint128 } from "solidity-math";
+import { Uint, uint128, uint256 } from "solidity-math";
 import {expect} from "chai";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { createHash } from 'crypto';
 import { BigNumberish } from 'ethers';
+import { Hash } from 'crypto';
 
 
 import { ProofGeneratorCLIProofProducer } from '../utils/proof_gen';
@@ -27,12 +28,19 @@ interface HashType {
 
 function identity(x: any) { return x; }
 
-function readUint128FromBuffer(buffer: Buffer, offset_bytes: number) {
+function readUint128FromBuffer(buffer: Buffer, offset_bytes: number, endianness: 'le' | 'be' = 'le') {
     let result = uint128(0);
-    result.ior(uint128(buffer.readUInt32LE(offset_bytes + 0)).shln(0));
-    result.ior(uint128(buffer.readUInt32LE(offset_bytes + 4)).shln(4 * 8));
-    result.ior(uint128(buffer.readUInt32LE(offset_bytes + 8)).shln(8 * 8));
-    result.ior(uint128(buffer.readUInt32LE(offset_bytes + 12)).shln(12 * 8));
+    if (endianness === 'be') {
+        result.ior(uint128(buffer.readUInt32BE(offset_bytes + 0)).shln(12 * 8));
+        result.ior(uint128(buffer.readUInt32BE(offset_bytes + 4)).shln(8 * 8));
+        result.ior(uint128(buffer.readUInt32BE(offset_bytes + 8)).shln(4 * 8));
+        result.ior(uint128(buffer.readUInt32BE(offset_bytes + 12)).shln(0));
+    } else {
+        result.ior(uint128(buffer.readUInt32LE(offset_bytes + 0)).shln(0));
+        result.ior(uint128(buffer.readUInt32LE(offset_bytes + 4)).shln(4 * 8));
+        result.ior(uint128(buffer.readUInt32LE(offset_bytes + 8)).shln(8 * 8));
+        result.ior(uint128(buffer.readUInt32LE(offset_bytes + 12)).shln(12 * 8));
+    }
     return result;
 }
 
@@ -51,10 +59,13 @@ export abstract class InputBase {
         return { vector: mappedValues };
     }
 
-    static asHash(value: Buffer): HashType {
-        if (value.length != 32) { throw new Error(`Buffer must contain exactly 32 bytes, got ${value.length}`)}
-        const low = readUint128FromBuffer(value, 0);
-        const high = readUint128FromBuffer(value, 16);
+    static asHash(value: Buffer, flip: boolean = false): HashType {
+        if (value.length != 32) { throw new Error(`Buffer must contain exactly 32 bytes, got ${value.length}`)};
+        console.log(value);
+        const endianness = 'le';
+        const source = flip ? value.reverse() : value;
+        const low = uint256(readUint128FromBuffer(source, 0, endianness));
+        const high = uint256(readUint128FromBuffer(source, 16, endianness));
         return { vector: [{ field: low.toString() }, { field: high.toString() }] };
     }
 
@@ -110,14 +121,14 @@ export async function runTest(
     }
 }
 
-export function uint256ToBuffer32(value: Uint, littleEndian: boolean = true): Buffer {
-    return value.bn.toBuffer(littleEndian ? 'le': 'be', 32);
+export function uint256ToBuffer32(value: Uint, endianness: 'be' | 'le' = 'le'): Buffer {
+    return value.bn.toBuffer(endianness, 32);
 }
 
-export function computeSHA256Hash(a: Uint, b: Uint): string {
+export function computeSHA256Hash(a: Uint, b: Uint): Buffer {
     const buffer = Buffer.concat([a.bn.toBuffer('le', 32), b.bn.toBuffer('le', 32)]);
 
     if (buffer.length != 64) { throw new Error(`Buffer should contain exactly 64 bytes, got ${buffer.length}`)};
 
-    return createHash('sha256').update(buffer).digest('hex');
+    return createHash('sha256').update(buffer).digest();
 }

@@ -213,6 +213,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
 }
 
 const AllCircuits = new Map([
+    ['playground', new CircuitArtifactsFactory("00-playground", "playground")],
     ['addition', new CircuitArtifactsFactory("01-addition", "addition")],
     ['multiplication', new CircuitArtifactsFactory("02-multiplication", "multiplication")],
     ['sha256', new CircuitArtifactsFactory("03-sha256", "sha256")],

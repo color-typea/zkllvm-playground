@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as childProcess from 'child_process';
-import {getLogger} from "./logging";
+import {LogLevels, getLogger} from "./logging";
 
 function empty() { }
 
@@ -16,9 +16,11 @@ export const LogLevel = {
 
 export class CmdlineHelper {
     protected logger;
+    private supressSubcommandOutput: boolean;
 
-    constructor(logLevel: number, private supressSubcommandOutput: boolean = true) {
+    constructor(logLevel: number) {
         this.logger = getLogger(logLevel);
+        this.supressSubcommandOutput = logLevel >= LogLevel.INFO;
     }
 
     protected flattenNamedArgs(namedArgs: Record<string, string>): string[] {

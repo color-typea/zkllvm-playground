@@ -19,7 +19,7 @@ export function getLogger(logLevel: number) {
 }
 
 export const LogLevels = {
-    DEPLOY: LogLevel.DEBUG,
+    DEPLOY: LogLevel.INFO,
     ARTIFACTS: LogLevel.INFO,
     PROOF_GENERATOR: LogLevel.INFO,
     CONTRACT_INTERACTION: LogLevel.INFO,

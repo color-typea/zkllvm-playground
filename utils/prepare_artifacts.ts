@@ -80,6 +80,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
     }
 
     private async ensurePaths(): Promise<void> {
+        this.logger.info(`[${this.circuitName}]: Ensuring paths`);
         const paths = [
             this.folders.development, this.folders.proofGeneration, 
             this.compilationArtifacts.tempGatesFolder, this.compilationArtifacts.contractsGatesFolder
@@ -122,6 +123,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
     }
 
     private async compileCircuit(): Promise<void> {
+        this.logger.info(`[${this.circuitName}]: Compiling circuit`);
         const args = [
             ...this.arrayArg("-D", ["__ZKLLVM__"]),
             ...this.arrayArg("-I", this.compileIncludes()),
@@ -137,6 +139,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
     }
 
     private assignCircuit(): Promise<void> {
+        this.logger.info(`[${this.circuitName}]: Assigning circuit`);
         const args = this.flattenNamedArgs({
             "-b": this.compilationArtifacts.compiledCicuit,
             "-i": this.sources.input,
@@ -149,6 +152,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
     }
 
     private async transpileCircuit(): Promise<void> {
+        this.logger.info(`[${this.circuitName}]: Transpiling circuit`);
         const args = [
             // -m gen-evm-verifier -i ${PUBLIC_INPUT} -t ${ASSIGNMENT_TABLE_FILE} -c ${CRCT_FILE} -o ${GATES_DIR} --optimize-gates
                 ...this.flattenNamedArgs({
@@ -170,7 +174,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
     }
 
     private async rewriteGates(): Promise<void> {
-        this.logger.debug(`Rewriting gates`);
+        this.logger.info(`[${this.circuitName}]: Rewriting generated gates`);
         const dependenciesRegex = this.createReplaceRegexForGrep("../../", "@nilfoundation/evm-placeholder-verification/contracts/");
         const cmdDependencies = `find ${this.compilationArtifacts.tempGatesFolder} -type f -name *.sol -exec sed -i -e '${dependenciesRegex}' {} \\;`;
         await this.runCmd(cmdDependencies);
@@ -181,7 +185,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
     }
 
     private async moveGates(): Promise<void> {
-        this.logger.debug(`Moving gates`);
+        this.logger.info(`[${this.circuitName}]: Moving gates to contracts folder`);
         this.logger.debug(`Moving gates from ${this.compilationArtifacts.tempGatesFolder} to ${this.compilationArtifacts.contractsGatesFolder}`)
         await this.deleteAllFilesInDir(this.compilationArtifacts.contractsGatesFolder);
         await this.moveAllFilesInDir(
@@ -192,17 +196,11 @@ class CircuitArtifactsFactory extends CmdlineHelper {
 
     async prepareArtifacts(): Promise<CompilationArtifacts> {
         try {
-            this.logger.info(`[${this.circuitName}]: Ensuring paths`);
             await this.ensurePaths();
-            this.logger.info(`[${this.circuitName}]: Compiling circuit`);
             await this.compileCircuit();
-            this.logger.info(`[${this.circuitName}]: Assigning circuit`);
             await this.assignCircuit();
-            this.logger.info(`[${this.circuitName}]: Transpiling circuit`);
             await this.transpileCircuit();
-            this.logger.info(`[${this.circuitName}]: Rewriting generated gates`);
             await this.rewriteGates();
-            this.logger.info(`[${this.circuitName}]: Moving gates to contracts folder`);
             await this.moveGates();
             return this.compilationArtifacts;
         } catch (err) {

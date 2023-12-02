@@ -26,18 +26,15 @@ export class CircuitInputClass extends InputBase implements CircuitInput {
     }
 }
 
+const circuit = 'addition';
+const fixture = `${circuit}_fixture`;
+const contractName = `${circuit}_contract`;
 
-
-describe("Addition", async function () {
-    const circuit = 'addition';
-    const fixture = `${circuit}_fixture`;
-    const contractName = `${circuit}_contract`;
-
+describe(circuit, async function () {
     // DO NOT await here - mocha does not work nicely with async/await in describe
     // So we're creating a single await'able here, and await in all tests.
     // Only the first one will actually be awaited, everything else will resolve immediately
     const setupPromise = prepareTest(circuit, fixture);
-    
     
     describe("valid input", async function () {
         const tests = [

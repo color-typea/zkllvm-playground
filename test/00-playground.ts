@@ -1,12 +1,14 @@
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
-import {prepareTest, CircuitInput, InputBase, runTest, computeSHA256Hash, uint256ToBuffer32} from "./test_utils";
+import {prepareTest, CircuitInput, InputBase, runTest, computeSHA256Hash, uint256ToBuffer32, packUint64IntoSha256} from "./test_utils";
 import { BigNumberish } from "ethers";
-import { uint256 } from "solidity-math";
+import { Uint, uint256 } from "solidity-math";
 
 class CircuitInputClass extends InputBase implements CircuitInput {
     constructor(
-        public a: Buffer,
-        public b: Buffer,
+        public a: Uint,
+        public b: Uint,
+        public c: Uint,
+        public d: Uint,
         public expected_hash: Buffer,
     ) {
         super();
@@ -14,11 +16,12 @@ class CircuitInputClass extends InputBase implements CircuitInput {
 
     serializeFullForProofGen(): any[] {
         const result = [
-            InputBase.asHash(this.a),
-            InputBase.asHash(this.b),
+            InputBase.asInt(this.a),
+            InputBase.asInt(this.b),
+            InputBase.asInt(this.c),
+            InputBase.asInt(this.d),
             InputBase.asHash(this.expected_hash),
         ];
-        // console.log("Serialized for proof generator", JSON.stringify(result));
         return result;
     }
 
@@ -31,13 +34,11 @@ class CircuitInputClass extends InputBase implements CircuitInput {
     }
 }
 
+const circuit = 'playground';
+const fixture = `${circuit}_fixture`;
+const contractName = `${circuit}_contract`;
 
-
-describe("Playground", async function () {
-    const circuit = 'playground';
-    const fixture = `${circuit}_fixture`;
-    const contractName = `${circuit}_contract`;
-
+describe(circuit, async function () {
     // DO NOT await here - mocha does not work nicely with async/await in describe
     // So we're creating a single await'able here, and await in all tests.
     // Only the first one will actually be awaited, everything else will resolve immediately
@@ -45,21 +46,15 @@ describe("Playground", async function () {
         
     describe("valid input", async function () {
        it("runs successfully", async () => {
-            // const a = uint256(255);
-            const a = uint256(255).shln(16*8).add(255);
-            const b = uint256(0);
-            const expected_hash = computeSHA256Hash(a, b);
-            // const expected_hash = Buffer.from(
-            //     '8a023a9e4affbb255a6b48ae85cc4a7d1a1b9e8e6809fe9e48535c01c1fc071a',
-            //     'hex'
-            // );
+            const a = uint256(1);
+            const b = uint256(2);
+            const c = uint256(3);
+            const d = uint256(4);
+            const expected_sha256 = packUint64IntoSha256(a, b, c, d);
             const input = new CircuitInputClass(
-                uint256ToBuffer32(a),
-                uint256ToBuffer32(b),
-                expected_hash
+                a, b, c, d,
+                expected_sha256
             );
-            console.log("Proof", JSON.stringify(input.serializeFullForProofGen()));
-            console.log("Verify", JSON.stringify(input.serializePublicForContract()));
             const compilationArtifacts = await setupPromise;
             await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: true});
        });

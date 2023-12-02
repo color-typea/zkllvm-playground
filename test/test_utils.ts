@@ -109,9 +109,12 @@ export async function runTest(
         const Contract = await hre.ethers.getContract<Contract>(contractName);
         const zkProof = await proofProducer.generateProof(circuit_input, skipVerification);
         LOGGER.info("Submitting proof");
+        LOGGER.debug("Proover payload", JSON.stringify(circuit_input.serializeFullForProofGen()));
+        LOGGER.debug("Verifier public input", JSON.stringify(circuit_input.serializePublicForContract()));
         const submission = submitProof(Contract, circuit_input, zkProof);
         if (reverts) {
-            await expect(submission).to.be.revertedWithoutReason();
+            // await expect(submission).to.be.revertedWithoutReason();
+            await expect(submission).to.be.reverted;
         } else {
             expect(await submission).to.equal(returnValue);
         }

@@ -26,13 +26,11 @@ class CircuitInputClass extends InputBase implements CircuitInput {
     }
 }
 
+const circuit = 'multiplication';
+const fixture = `${circuit}_fixture`;
+const contractName = `${circuit}_contract`;
 
-
-describe("Multiplication", async function () {
-    const circuit = 'multiplication';
-    const fixture = `${circuit}_fixture`;
-    const contractName = `${circuit}_contract`;
-
+describe(circuit, async function () {
     // DO NOT await here - mocha does not work nicely with async/await in describe
     // So we're creating a single await'able here, and await in all tests.
     // Only the first one will actually be awaited, everything else will resolve immediately
@@ -43,7 +41,7 @@ describe("Multiplication", async function () {
         const tests = [
             {label: "1 * 2 = 2", input: new CircuitInputClass(1, 2, 2)},
             {label: "15 * 7 = 105", input: new CircuitInputClass(15, 7, 105)},
-        ]        
+        ];
 
         for (const test of tests) {
             const {label, input} = test;

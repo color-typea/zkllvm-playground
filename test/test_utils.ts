@@ -45,8 +45,8 @@ function readUint128FromBuffer(buffer: Buffer, offset_bytes: number, endianness:
 }
 
 export abstract class InputBase {
-    static asInt(val: number): { int: number } {
-        return { int: val };
+    static asInt(val: number | Uint): { int: string } {
+        return { int: val.toString() };
     }
 
     static asArray<T, TOut>(val: T[], mapper: (item: T) => TOut = identity): { array: TOut[] } {
@@ -133,4 +133,13 @@ export function computeSHA256Hash(a: Uint, b: Uint): Buffer {
     if (buffer.length != 64) { throw new Error(`Buffer should contain exactly 64 bytes, got ${buffer.length}`)};
 
     return createHash('sha256').update(buffer).digest();
+}
+
+export function packUint64IntoSha256(a: Uint, b: Uint, c: Uint, d: Uint): Buffer {
+    return Buffer.concat([
+        a.bn.toBuffer('le', 8),
+        b.bn.toBuffer('le', 8),
+        c.bn.toBuffer('le', 8),
+        d.bn.toBuffer('le', 8),
+    ]);
 }

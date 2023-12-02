@@ -215,6 +215,7 @@ const AllCircuits = new Map([
     ['addition', new CircuitArtifactsFactory("01-addition", "addition")],
     ['multiplication', new CircuitArtifactsFactory("02-multiplication", "multiplication")],
     ['sha256', new CircuitArtifactsFactory("03-sha256", "sha256")],
+    ['byte_packing', new CircuitArtifactsFactory("04-byte_packing", "byte_packing")],
 ]);
 
 export {

@@ -10,16 +10,18 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 10,
+        runs: 1000,
       },
     },
+    
   },
   namedAccounts: {
     deployer: 0,
   },
   networks: {
     hardhat: {
-        blockGasLimit: 50000000000
+        blockGasLimit: 50000000000,
+        allowUnlimitedContractSize: true,
     },
   },
   mocha: {

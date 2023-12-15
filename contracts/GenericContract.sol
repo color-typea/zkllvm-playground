@@ -17,7 +17,7 @@ contract generic_verification_contract {
 
     function submitReportData(
         OracleProof calldata proof
-    ) public view returns (bool) {
+    ) public returns (bool) {
         return verifier.verify(
             proof.zkProof,
             proof.public_input

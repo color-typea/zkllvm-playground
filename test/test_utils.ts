@@ -3,7 +3,7 @@ import { Uint, uint128, uint256 } from "solidity-math";
 import {expect} from "chai";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { createHash } from 'crypto';
-import { BigNumberish } from 'ethers';
+import { BigNumberish, TransactionReceipt, TransactionResponse } from 'ethers';
 import { Hash } from 'crypto';
 
 
@@ -50,12 +50,12 @@ export abstract class InputBase {
     }
 
     static asArray<T, TOut>(val: T[], mapper: (item: T) => TOut = identity): { array: TOut[] } {
-        const mappedValues = val.map(mapper);
+        const mappedValues = val.map((val, _idx) => mapper(val));
         return { array: mappedValues };
     }
 
     static asVector<T, TOut>(val: Array<T>, mapper: (item: T) => TOut = identity): { vector: TOut[] } {
-        const mappedValues = val.map(mapper);
+        const mappedValues = val.map((val, _idx) => mapper(val));
         return { vector: mappedValues };
     }
 
@@ -63,9 +63,10 @@ export abstract class InputBase {
         if (value.length != 32) { throw new Error(`Buffer must contain exactly 32 bytes, got ${value.length}`)};
         const endianness = 'be';
         const source = flip ? value.reverse() : value;
-        const low = uint256(readUint128FromBuffer(source, 0, endianness));
-        const high = uint256(readUint128FromBuffer(source, 16, endianness));
-        return { vector: [{ field: low.toString() }, { field: high.toString() }] };
+        return { vector: [
+            { field: readUint128FromBuffer(source,  0, endianness).toString() }, 
+            { field: readUint128FromBuffer(source, 16, endianness).toString() }
+        ] };
     }
 
     static hexStringAsHash(value: string): HashType {
@@ -89,7 +90,7 @@ type TestOptions = { returnValue?: boolean, reverts?: boolean };
 
 const LOGGER = getLogger(LogLevels.CONTRACT_INTERACTION);
 
-export async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buffer): Promise<boolean> {
+export async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buffer): Promise<TransactionResponse> {
     const proof = {
         public_input: input.serializePublicForContract(),
         zkProof: zkProof,
@@ -106,20 +107,20 @@ export async function runTest(
     const proofProducer = new ProofGeneratorCLIProofProducer(compiledCircuit);
     const skipVerification = !returnValue;
     try {
+        LOGGER.debug("Proover payload", JSON.stringify(circuit_input.serializeFullForProofGen()));
+        LOGGER.debug("Verifier public input", JSON.stringify(circuit_input.serializePublicForContract()));
         const Contract = await hre.ethers.getContract<Contract>(contractName);
         const zkProof = await proofProducer.generateProof(circuit_input, skipVerification);
         LOGGER.info("Submitting proof");
-        LOGGER.debug("Proover payload", JSON.stringify(circuit_input.serializeFullForProofGen()));
-        LOGGER.debug("Verifier public input", JSON.stringify(circuit_input.serializePublicForContract()));
-        const submission = submitProof(Contract, circuit_input, zkProof);
+        const tx = submitProof(Contract, circuit_input, zkProof);
         if (reverts) {
             // await expect(submission).to.be.revertedWithoutReason();
-            await expect(submission).to.be.reverted;
+            await expect(tx).to.be.reverted;
         } else {
-            expect(await submission).to.equal(returnValue);
+            expect(tx).to.emit(Contract, 'VerificationResult').withArgs(returnValue);
         }
     } finally {
-        proofProducer.cleanup();
+        // proofProducer.cleanup();
     }
 }
 

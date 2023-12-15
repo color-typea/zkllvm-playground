@@ -127,7 +127,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
         const args = [
             ...this.arrayArg("-D", ["__ZKLLVM__"]),
             ...this.arrayArg("-I", this.compileIncludes()),
-            "-emit-llvm", "-O1", "-S",
+            "-emit-llvm", "-O1", "-S", "-Xclang", "-fpreserve-vec3-type", "-Werror=unknown-attributes",
             ...this.flattenNamedArgs({
                 "-target": "assigner",
                 "-o": this.compilationArtifacts.compiledCicuit,
@@ -161,6 +161,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
                 "-t": this.compilationArtifacts.assingmentTable,
                 "-c": this.compilationArtifacts.constraints,
                 "-o": this.compilationArtifacts.tempGatesFolder,
+                "-e": "pallas",
             }),
             "--optimize-gates"
         ];

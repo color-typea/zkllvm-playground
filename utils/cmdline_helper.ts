@@ -71,12 +71,13 @@ export class CmdlineHelper {
     }
 
     async runCommand(command: string, runArgs: Array<string>, options: childProcess.SpawnOptions = {}): Promise<void> {
-        const stdout = this.supressSubcommandOutput ? 'ignore' : 'pipe';
+        const stdout = this.supressSubcommandOutput ? 'ignore' : 'inherit';
         const exec = () => childProcess.spawn(command, runArgs, {
             shell: true,
             stdio: ['inherit', stdout, 'inherit'],
             ...options
         });
+        this.logger.debug("Running", command, runArgs);
         return this._run(exec);
     }
 

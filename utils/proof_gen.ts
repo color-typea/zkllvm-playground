@@ -77,11 +77,11 @@ export class ProofGeneratorCLIProofProducer extends CmdlineHelper {
         const crct = await this._createTempFile('circuit', 'crct');
         const tbl = await this._createTempFile('circuit', 'tbl');
         const input = proofInput.serializeFullForProofGen();
+        this.logger.debug("Input", JSON.stringify(input));
         await fs.writeFile(inputFile, JSON.stringify(input));
 
         const runArgs: string[] = this._genRunAssignerArgs(inputFile, crct, tbl);
         this.logger.info('Invoking assigner');
-        this.logger.debug('Running proof generator', runArgs);
         return this.runCommand(this.assignerBin, runArgs)
             .then(() => { return { crct, assignmentTable: tbl }; })
             .catch((err) => {
@@ -99,7 +99,6 @@ export class ProofGeneratorCLIProofProducer extends CmdlineHelper {
         const { crct, assignmentTable } = await this._runAssigner(proofInput, inputFileName);
         const runArgs = this.genRunArgsV2(crct, assignmentTable, proofFile, skipVerification);
         this.logger.info('Invoking proof generator');
-        this.logger.debug("Running proof generator", runArgs);
         return this.runCommand(this.proofProducerBin, runArgs)
             .then(async () => await fs.readFile(proofFile, 'utf8'))
             .then(data => this.readProofFile(data))

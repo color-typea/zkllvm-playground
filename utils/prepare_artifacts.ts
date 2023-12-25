@@ -20,10 +20,9 @@ const PROOF_PRODUCER_DIR=path.join(OUTPUT_DIR, "proof-producer");
 
 
 const COMPILER_BIN = path.join(ZKLLVM, "build/libs/circifier/llvm/bin/clang-16");
+const LINKER_BIN = path.join(ZKLLVM, "build/libs/circifier/llvm/bin/llvm-link");
 const ASSIGNER_BIN = path.join(ZKLLVM, "build/bin/assigner/assigner");
 const TRANSPILER_BIN = path.join(ZKLLVM, "build/bin/transpiler/transpiler");
-
-type CompiledCirctuitFile = string;
 
 type CirtcuitArtifactsFolders = {
     circuitSource: string,
@@ -35,11 +34,22 @@ type CirtcuitArtifactsFolders = {
 
 type SourceFolders = {
     circuit: string,
-    input: string
+    publicInput: string
+    privateInput: string
 };
+
+type AssignerInput = {
+    "-b": string,
+    "-i": string,
+    "-t": string,
+    "-c": string,
+    "-e": string,
+    "-p"?: string
+}
 
 export type CompilationArtifacts = {
     compiledCicuit: string,
+    compiledCicuitNoStdlib: string,
     assingmentTable: string,
     constraints: string,
 
@@ -66,11 +76,13 @@ class CircuitArtifactsFactory extends CmdlineHelper {
 
         this.sources = {
             circuit: path.join(this.folders.circuitSource, `${this.circuitName}.cpp`),
-            input: path.join(this.folders.circuitSource, `${this.circuitName}.inp`)
+            publicInput: path.join(this.folders.circuitSource, `${this.circuitName}_public.inp`),
+            privateInput: path.join(this.folders.circuitSource, `${this.circuitName}_private.inp`)
         };
 
         this.compilationArtifacts = {
             compiledCicuit: path.join(this.folders.development, `${this.circuitName}.ll`),
+            compiledCicuitNoStdlib: path.join(this.folders.development, `${this.circuitName}_no_stdlib.ll`),
             assingmentTable: path.join(this.folders.development, `${this.circuitName}.tbl`),
             constraints: path.join(this.folders.development, `${this.circuitName}.crct`),
 
@@ -118,19 +130,20 @@ class CircuitArtifactsFactory extends CmdlineHelper {
             "./libs/crypto3/libs/vdf/include",
             "./libs/crypto3/libs/zk/include",
             "./libs/stdlib/libcpp",
-            "./libs/stdlib/libc/include            ",
+            "./libs/circifier/clang/lib/Headers",
+            "./libs/stdlib/libc/include",
         ];
     }
 
     private async compileCircuit(): Promise<void> {
         this.logger.info(`[${this.circuitName}]: Compiling circuit`);
         const args = [
-            ...this.arrayArg("-D", ["__ZKLLVM__"]),
+            ...this.arrayArg("-D", ["__ZKLLVM__", "_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION"]),
             ...this.arrayArg("-I", this.compileIncludes()),
             "-emit-llvm", "-O1", "-S", "-Xclang", "-fpreserve-vec3-type", "-Werror=unknown-attributes",
             ...this.flattenNamedArgs({
                 "-target": "assigner",
-                "-o": this.compilationArtifacts.compiledCicuit,
+                "-o": this.compilationArtifacts.compiledCicuitNoStdlib,
             }),
             this.sources.circuit
         ];
@@ -138,15 +151,40 @@ class CircuitArtifactsFactory extends CmdlineHelper {
         return await this.runCommand(COMPILER_BIN, args, { cwd: ZKLLVM });
     }
 
-    private assignCircuit(): Promise<void> {
+    private linkDependencies(): string[] {
+        const dependencies = [
+            "./build/libs/stdlib/libc/zkllvm-libc.ll",
+            "./build/libs/stdlib/libcpp/zkllvm-libcpp.ll"
+        ];
+        this.logger.warn(`[${this.circuitName}]: Using dependecies ${dependencies} - make sure they exist and up to date`);
+        return dependencies
+    }
+
+    private async linkCircuit(): Promise<void> {
+        this.logger.info(`[${this.circuitName}]: Linking circuit`);
+        const args = [
+            "-S",
+            ...this.flattenNamedArgs({"-o": this.compilationArtifacts.compiledCicuit}),
+            this.compilationArtifacts.compiledCicuitNoStdlib,
+            ...this.linkDependencies()
+        ];
+        this.logger.debug(`Linking ${this.circuitName}`);
+        await this.runCommand(LINKER_BIN, args, { cwd: ZKLLVM });
+    }
+
+    private async assignCircuit(): Promise<void> {
         this.logger.info(`[${this.circuitName}]: Assigning circuit`);
-        const args = this.flattenNamedArgs({
+        const argsObj: AssignerInput = {
             "-b": this.compilationArtifacts.compiledCicuit,
-            "-i": this.sources.input,
+            "-i": this.sources.publicInput,
             "-t": this.compilationArtifacts.assingmentTable,
             "-c": this.compilationArtifacts.constraints,
             "-e": "pallas",
-        });
+        };
+        if (await this.fileExists(this.sources.privateInput)) {
+            argsObj['-p'] = this.sources.privateInput;
+        }
+        const args = this.flattenNamedArgs(argsObj);
         this.logger.debug(`Assigning ${this.circuitName}`);
         return this.runCommand(ASSIGNER_BIN, args, { cwd: ZKLLVM });
     }
@@ -157,7 +195,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
             // -m gen-evm-verifier -i ${PUBLIC_INPUT} -t ${ASSIGNMENT_TABLE_FILE} -c ${CRCT_FILE} -o ${GATES_DIR} --optimize-gates
                 ...this.flattenNamedArgs({
                 "-m": "gen-evm-verifier",
-                "-i": this.sources.input,
+                "-i": this.sources.publicInput,
                 "-t": this.compilationArtifacts.assingmentTable,
                 "-c": this.compilationArtifacts.constraints,
                 "-o": this.compilationArtifacts.tempGatesFolder,
@@ -199,6 +237,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
         try {
             await this.ensurePaths();
             await this.compileCircuit();
+            await this.linkCircuit();
             await this.assignCircuit();
             await this.transpileCircuit();
             await this.rewriteGates();

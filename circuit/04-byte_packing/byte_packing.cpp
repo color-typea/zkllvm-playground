@@ -35,7 +35,7 @@ block_type pack_4xuint64_into_block_type(uint64_t e1, uint64_t e2, uint64_t e3, 
     [[private_input]] uint64_t b,
     [[private_input]] uint64_t c,
     [[private_input]] uint64_t d,
-    [[private_input]] block_type expected_block
+    block_type expected_block
 ) {
     block_type packed = pack_4xuint64_into_block_type(a, b, c, d);
     __builtin_assigner_exit_check(is_same(packed, expected_block));

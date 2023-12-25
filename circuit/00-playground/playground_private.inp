@@ -27,7 +27,5 @@
         {"vector": [{"field": "0"}, {"field": "0"}]}, 
         {"vector": [{"field": "0"}, {"field": "0"}]}
     ]}, 
-    {"vector": [{"field": "0"}, {"field": "1"}]}, 
-    {"int": 21}, 
-    {"int": 7}
+    {"vector": [{"field": "0"}, {"field": "1"}]}
 ]

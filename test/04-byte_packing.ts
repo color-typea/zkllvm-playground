@@ -14,13 +14,18 @@ class CircuitInputClass extends InputBase implements CircuitInput {
         super();
     }
 
-    serializeFullForProofGen(): any[] {
+    serializePublicForProofGen(): any[] {
+        return [
+            InputBase.asHash(this.expected_hash)
+        ];
+    }
+
+    serializePrivateForProofGen(): any[] {
         const result = [
             InputBase.asInt(this.a),
             InputBase.asInt(this.b),
             InputBase.asInt(this.c),
-            InputBase.asInt(this.d),
-            InputBase.asHash(this.expected_hash),
+            InputBase.asInt(this.d)
         ];
         return result;
     }

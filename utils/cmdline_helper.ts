@@ -23,6 +23,12 @@ export class CmdlineHelper {
         this.supressSubcommandOutput = logLevel >= LogLevel.INFO;
     }
 
+    protected async fileExists(filename: string): Promise<boolean> {
+        return fs.promises.access(filename, fs.constants.F_OK)
+            .then(() => true)
+            .catch(() => false)
+    }
+
     protected flattenNamedArgs(namedArgs: Record<string, string>): string[] {
         return Object.entries(namedArgs).reduce<string[]>(
             (acc, [key, value]) => acc.concat([key, value]),
@@ -78,6 +84,7 @@ export class CmdlineHelper {
             ...options
         });
         this.logger.debug("Running", command, runArgs);
+        this.logger.debug(`Run command:\n${command} ${runArgs.join(" ")}`)
         return this._run(exec);
     }
 

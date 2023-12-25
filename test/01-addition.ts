@@ -11,10 +11,15 @@ export class CircuitInputClass extends InputBase implements CircuitInput {
         super();
     }
 
-    serializeFullForProofGen(): any[] {
+    serializePrivateForProofGen(): any[] {
         return [
             InputBase.asInt(this.a),
             InputBase.asInt(this.b),
+        ];
+    }
+
+    serializePublicForProofGen(): any[] {
+        return [
             InputBase.asInt(this.sum),
         ];
     }
@@ -60,7 +65,7 @@ describe(circuit, async function () {
             const {label, input} = test;
             it(label, async function() {
                 const compilationArtifacts = await setupPromise;
-                await runTest(contractName, compilationArtifacts.compiledCicuit, input, {reverts: true});
+                await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: false});
             });
         }
     });

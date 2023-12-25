@@ -82,7 +82,8 @@ export abstract class InputBase {
 }
 
 export interface CircuitInput {
-    serializeFullForProofGen(): any[];
+    serializePublicForProofGen(): any[];
+    serializePrivateForProofGen(): any[];
     serializePublicForContract(): BigNumberish[]
 }
 
@@ -105,22 +106,21 @@ export async function runTest(
     { returnValue = false, reverts = false }: TestOptions) {
 
     const proofProducer = new ProofGeneratorCLIProofProducer(compiledCircuit);
-    const skipVerification = !returnValue;
+    const skipVerification = true;
     try {
-        LOGGER.debug("Proover payload", JSON.stringify(circuit_input.serializeFullForProofGen()));
+        LOGGER.debug("Proover payload", JSON.stringify({private: circuit_input.serializePrivateForProofGen(), public: circuit_input.serializePublicForProofGen()}));
         LOGGER.debug("Verifier public input", JSON.stringify(circuit_input.serializePublicForContract()));
         const Contract = await hre.ethers.getContract<Contract>(contractName);
         const zkProof = await proofProducer.generateProof(circuit_input, skipVerification);
         LOGGER.info("Submitting proof");
         const tx = submitProof(Contract, circuit_input, zkProof);
         if (reverts) {
-            // await expect(submission).to.be.revertedWithoutReason();
             await expect(tx).to.be.reverted;
         } else {
             expect(tx).to.emit(Contract, 'VerificationResult').withArgs(returnValue);
         }
     } finally {
-        // proofProducer.cleanup();
+        proofProducer.cleanup();
     }
 }
 

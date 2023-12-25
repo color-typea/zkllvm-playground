@@ -56,13 +56,15 @@ export class ProofGeneratorCLIProofProducer extends CmdlineHelper {
     }
 
     _genRunAssignerArgs(
-        inputFileName: string,
+        publicInputFileName: string,
+        privateInputFileName: string,
         crctFileName: string,
         tblFileName: string,
     ): string[] {
         return this.flattenNamedArgs({
             "--bytecode": this.circuit_bytecode,
-            "--public-input": inputFileName,
+            "--public-input": publicInputFileName,
+            "--private-input": privateInputFileName,
             "--assignment-table": tblFileName,
             "--circuit": crctFileName,
             "--elliptic-curve-type": "pallas"
@@ -71,16 +73,19 @@ export class ProofGeneratorCLIProofProducer extends CmdlineHelper {
 
     async _runAssigner(
         proofInput: CircuitInput,
-        inputFileName?: string
     ): Promise<{ crct: string, assignmentTable: string }> {
-        const inputFile = inputFileName ?? (await this._createTempFile('input', 'json'));
+        const publicInputFile = await this._createTempFile('input', '_public.json');
+        const privateInputFile = await this._createTempFile('input', '_public.json');
         const crct = await this._createTempFile('circuit', 'crct');
         const tbl = await this._createTempFile('circuit', 'tbl');
-        const input = proofInput.serializeFullForProofGen();
-        this.logger.debug("Input", JSON.stringify(input));
-        await fs.writeFile(inputFile, JSON.stringify(input));
+        const publicInput = JSON.stringify(proofInput.serializePublicForProofGen());
+        const privateInput = JSON.stringify(proofInput.serializePrivateForProofGen());
+        this.logger.debug("Public input", publicInput);
+        this.logger.debug("Private input", privateInput);
+        await fs.writeFile(publicInputFile, publicInput);
+        await fs.writeFile(privateInputFile, privateInput);
 
-        const runArgs: string[] = this._genRunAssignerArgs(inputFile, crct, tbl);
+        const runArgs: string[] = this._genRunAssignerArgs(publicInputFile, privateInputFile, crct, tbl);
         this.logger.info('Invoking assigner');
         return this.runCommand(this.assignerBin, runArgs)
             .then(() => { return { crct, assignmentTable: tbl }; })
@@ -96,7 +101,7 @@ export class ProofGeneratorCLIProofProducer extends CmdlineHelper {
         proofFileName?: string,
     ): Promise<Buffer> {
         const proofFile = proofFileName ?? (await this._createTempFile('proof', 'bin'));
-        const { crct, assignmentTable } = await this._runAssigner(proofInput, inputFileName);
+        const { crct, assignmentTable } = await this._runAssigner(proofInput);
         const runArgs = this.genRunArgsV2(crct, assignmentTable, proofFile, skipVerification);
         this.logger.info('Invoking proof generator');
         return this.runCommand(this.proofProducerBin, runArgs)

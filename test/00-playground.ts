@@ -14,11 +14,17 @@ class CircuitInputClass extends InputBase implements CircuitInput {
         super();
     }
 
-    serializeFullForProofGen(): any[] {
+    serializePrivateForProofGen(): any[] {
         const result = [
             InputBase.asArray(this.values, InputBase.asInt),
             InputBase.asArray(this.keys, InputBase.asHash),
             InputBase.asHash(this.target_key),
+        ];
+        return result;
+    }
+
+    serializePublicForProofGen(): any[] {
+        const result = [
             InputBase.asInt(this.expected_sum),
             InputBase.asInt(this.expected_count),
         ];
@@ -27,8 +33,8 @@ class CircuitInputClass extends InputBase implements CircuitInput {
 
     serializePublicForContract(): BigNumberish[] {
         return [
-            // this.expected_sum.bn.toString(), 
-            // this.expected_count.bn.toString()
+            this.expected_sum.bn.toString(), 
+            this.expected_count.bn.toString()
         ];
     }
 }

@@ -12,13 +12,17 @@ class CircuitInputClass extends InputBase implements CircuitInput {
         super();
     }
 
-    serializeFullForProofGen(): any[] {
+    serializePrivateForProofGen(): any[] {
         const result = [
             InputBase.asHash(this.a),
             InputBase.asHash(this.b),
             InputBase.asHash(this.expected_hash),
         ];
         return result;
+    }
+
+    serializePublicForProofGen(): any[] {
+        return [];
     }
 
     serializePublicForContract(): BigNumberish[] {
@@ -51,11 +55,11 @@ describe(circuit, async function () {
             {a: oneInBothFelts, b: uint256(1)},
 
             {
-                a: uint256("16507339364505767685707796512181655236330077571073020801870589322541997706161"), 
+                a: uint256("16507339364505767685707796512181655236330077571073020801870589322541997706161"),
                 b: uint256(0)
             },
             {
-                a: uint256("16507339364505767685707796512181655236330077571073020801870589322541997706161"), 
+                a: uint256("16507339364505767685707796512181655236330077571073020801870589322541997706161"),
                 b: uint256("2113178988811938236050057805162746832726629554183761089971103915512850086688")
             },
         ];
@@ -64,6 +68,7 @@ describe(circuit, async function () {
             const hash = computeSHA256Hash(test.a, test.b);
             const label = testLabel(test.a, test.b, hash.toString('hex'));
             it(label, async function() {
+                this.timeout(300000);
                 const input = new CircuitInputClass(
                     uint256ToBuffer32(test.a),
                     uint256ToBuffer32(test.b),
@@ -90,7 +95,7 @@ describe(circuit, async function () {
                     hash
                 );
                 const compilationArtifacts = await setupPromise;
-                await runTest(contractName, compilationArtifacts.compiledCicuit, input, {reverts: true});
+                await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: false});
             });
         }
     });

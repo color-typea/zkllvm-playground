@@ -1,15 +1,9 @@
 import { promises as fs } from 'fs';
-import * as path from 'path';
 import * as tmp from 'tmp';
 import { CmdlineHelper } from './cmdline_helper';
 import { LogLevels } from './logging';
 import { CircuitInput } from './circuit_input';
-
-const CUR_DIR = __dirname;
-const PROJECT_DIR = path.dirname(CUR_DIR);
-
-const PROOF_GENERATOR = path.join(PROJECT_DIR, '../proof-producer/build/bin/proof-generator', 'proof-generator');
-const ASSIGNER = path.join(PROJECT_DIR, '../zkllvm/build/bin/assigner', 'assigner');
+import * as zkllvm_pipeline from './zkllvm_pipeline';
 
 export interface IProofProducer {
     generateProof(
@@ -67,8 +61,8 @@ export class ProofGeneratorCLIProofProducer extends ProofProducerBase {
 
     constructor(
         private circuit_bytecode: string,
-        private proofProducerBin: string = PROOF_GENERATOR,
-        private assignerBin: string = ASSIGNER,
+        private proofProducerBin: string = zkllvm_pipeline.PROOF_GENERATOR,
+        private assignerBin: string = zkllvm_pipeline.ASSIGNER,
         private skipVerification: boolean = true
     ) {
         super(LogLevels.PROOF_GENERATOR);

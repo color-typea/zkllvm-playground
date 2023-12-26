@@ -1,28 +1,17 @@
-import * as childProcess from 'child_process';
 import * as path from 'path';
 import { CmdlineHelper } from './cmdline_helper';
 import { LogLevels } from './logging';
 import {promises as fs} from 'fs';
+import * as zkllvm_pipeline from './zkllvm_pipeline';
 
 const PROJECT_DIR = path.dirname(__dirname);
 const SRC_DIR=path.join(PROJECT_DIR, "circuit");
 const OUTPUT_DIR=path.join(PROJECT_DIR, "output");
 const CONTRACTS_DIR=path.join(PROJECT_DIR, "contracts");
 
-const ZKLLVM=path.join(PROJECT_DIR, "../zkllvm");
-const PROOF_MARKET=path.join(PROJECT_DIR, "../proof-market-toolchain");
-const PROOF_GENERATOR_FOLDER=path.join(PROJECT_DIR, "../proof-producer");
-const EVM_PLACEHOLDER_VERIFICATION=path.join(PROJECT_DIR, "../evm-placeholder-verification");
-
 const CIRCUIT_DEVELOPER_DIR=path.join(OUTPUT_DIR, "circuit-developer");
-const PROOF_REQUESTER_DIR=path.join(OUTPUT_DIR, "proof-requester");
 const PROOF_PRODUCER_DIR=path.join(OUTPUT_DIR, "proof-producer");
 
-
-const COMPILER_BIN = path.join(ZKLLVM, "build/libs/circifier/llvm/bin/clang-16");
-const LINKER_BIN = path.join(ZKLLVM, "build/libs/circifier/llvm/bin/llvm-link");
-const ASSIGNER_BIN = path.join(ZKLLVM, "build/bin/assigner/assigner");
-const TRANSPILER_BIN = path.join(ZKLLVM, "build/bin/transpiler/transpiler");
 
 type CirtcuitArtifactsFolders = {
     circuitSource: string,
@@ -148,7 +137,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
             this.sources.circuit
         ];
         this.logger.debug(`Compiling ${this.circuitName}`);
-        return await this.runCommand(COMPILER_BIN, args, { cwd: ZKLLVM });
+        return await this.runCommand(zkllvm_pipeline.COMPILER, args, { cwd: zkllvm_pipeline.ZKLLVM });
     }
 
     private linkDependencies(): string[] {
@@ -169,7 +158,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
             ...this.linkDependencies()
         ];
         this.logger.debug(`Linking ${this.circuitName}`);
-        await this.runCommand(LINKER_BIN, args, { cwd: ZKLLVM });
+        await this.runCommand(zkllvm_pipeline.LINKER, args, { cwd: zkllvm_pipeline.ZKLLVM });
     }
 
     private async assignCircuit(): Promise<void> {
@@ -186,7 +175,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
         }
         const args = this.flattenNamedArgs(argsObj);
         this.logger.debug(`Assigning ${this.circuitName}`);
-        return this.runCommand(ASSIGNER_BIN, args, { cwd: ZKLLVM });
+        return this.runCommand(zkllvm_pipeline.ASSIGNER, args, { cwd: zkllvm_pipeline.ZKLLVM });
     }
 
     private async transpileCircuit(): Promise<void> {
@@ -204,7 +193,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
             "--optimize-gates"
         ];
         this.logger.debug(`Transpiling ${this.circuitName}`);
-        return this.runCommand(TRANSPILER_BIN, args, { cwd: ZKLLVM });
+        return this.runCommand(zkllvm_pipeline.TRANSPILER, args, { cwd: zkllvm_pipeline.ZKLLVM });
     }
 
     private createReplaceRegexForGrep(whatToReplace: string, replacement: string): string {

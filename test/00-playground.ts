@@ -1,80 +1,56 @@
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
-import {prepareTest, CircuitInput, InputBase, runTest, computeSHA256Hash, uint256ToBuffer32, packUint64IntoSha256} from "./test_utils";
+import { TestRunner} from "./test_utils";
 import { BigNumberish } from "ethers";
-import { Uint, uint256, uint64 } from "solidity-math";
+import { Uint, uint64 } from "solidity-math";
+import { expect } from 'chai';
+import { CircuitInput, InputBase } from "../utils/circuit_input";
+import { PrecomputedProofProducer, ProofGeneratorCLIProofProducer } from "../utils/proof_gen";
+
+import * as path from 'path';
+import { CompilationArtifacts } from "../utils/prepare_artifacts";
+
+const CUR_DIR = __dirname;
+const PROJECT_DIR = path.dirname(CUR_DIR);
 
 class CircuitInputClass extends InputBase implements CircuitInput {
     constructor(
-        public values: Array<Uint>,
-        public keys: Array<Buffer>,
-        public target_key: Buffer,
-        public expected_sum: Uint,
-        public expected_count: Uint,
+        public value: Uint,
+        public shift: Uint,
+        public expected_shifted: Uint,
     ) {
         super();
     }
 
     serializePrivateForProofGen(): any[] {
-        const result = [
-            InputBase.asArray(this.values, InputBase.asInt),
-            InputBase.asArray(this.keys, InputBase.asHash),
-            InputBase.asHash(this.target_key),
+        return [
+            InputBase.asInt(this.value),
+            InputBase.asInt(this.shift),
+            InputBase.asInt(this.expected_shifted),
         ];
-        return result;
     }
 
     serializePublicForProofGen(): any[] {
-        const result = [
-            InputBase.asInt(this.expected_sum),
-            InputBase.asInt(this.expected_count),
-        ];
-        return result;
+        return [];
     }
 
     serializePublicForContract(): BigNumberish[] {
-        return [
-            this.expected_sum.bn.toString(), 
-            this.expected_count.bn.toString()
-        ];
+        return [];
     }
 }
 
-const circuit = 'playground';
-const fixture = `${circuit}_fixture`;
-const contractName = `${circuit}_contract`;
+const pregeneratedProofProducer = (_: CompilationArtifacts) =>  new PrecomputedProofProducer(path.join(PROJECT_DIR, 'output/proof.bin'));
+const normalProducer = (artifacts: CompilationArtifacts) => new ProofGeneratorCLIProofProducer(artifacts.compiledCircuit)
 
-const SIZE = 20;
+// Note: runner performs setup initialization and ensures compilation/assignment/etc. is run exactly once for all tests
+const runner = new TestRunner('playground', pregeneratedProofProducer);
 
-const range = (start: number, stop: number, step: number = 1): Array<number> => {
-    return Array.from({ length: (stop - start) / step }, (_, i) => start + (i * step));
-}
-
-describe(circuit, async function () {
-    // DO NOT await here - mocha does not work nicely with async/await in describe
-    // So we're creating a single await'able here, and await in all tests.
-    // Only the first one will actually be awaited, everything else will resolve immediately
-    const setupPromise = prepareTest(circuit, fixture);
-        
+describe(runner.circuitName, async function () {       
     describe("valid input", async function () {
         it("runs successfully", async () => {
-            const elements = { total: 20, target: 7 }
-            const values = range(0, elements.total);
-            const keyValues = {
-                target: uint256ToBuffer32(uint256(1).shln(248)),
-                other: uint256ToBuffer32(uint256(0))
-            }
-            const keys = Array.from({length: elements.target}, () => keyValues.target)
-                .concat(Array.from({length: elements.total - elements.target}, () => keyValues.other));
-            const expected_sum = values.slice(0, elements.target).reduce((acc, val) => acc + val);
-            const expected_count = elements.target;
-            const input = new CircuitInputClass(
-                values.map(val => uint64(val)), 
-                keys, 
-                keyValues.target, 
-                uint64(expected_sum), uint64(expected_count)
-            );
-            const compilationArtifacts = await setupPromise;
-            await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: true});
+            const [value, shift, expected ] = [1, 4, 16];
+            expect(uint64(value).shln(shift).toString()).to.equal(uint64(expected).toString());
+            const input = new CircuitInputClass(uint64(value), uint64(shift), uint64(expected));
+            await runner.runTest(input, {returnValue: true});
        });
     });
 });

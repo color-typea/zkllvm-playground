@@ -1,7 +1,8 @@
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
-import {prepareTest, CircuitInput, InputBase, runTest, computeSHA256Hash, uint256ToBuffer32} from "./test_utils";
+import { computeSHA256Hash, uint256ToBuffer32, TestRunner} from "./test_utils";
 import { Uint, uint256 } from "solidity-math";
 import { BigNumberish } from "ethers";
+import { CircuitInput, InputBase } from "../utils/circuit_input";
 
 class CircuitInputClass extends InputBase implements CircuitInput {
     constructor(
@@ -14,9 +15,9 @@ class CircuitInputClass extends InputBase implements CircuitInput {
 
     serializePrivateForProofGen(): any[] {
         const result = [
-            InputBase.asHash(this.a),
-            InputBase.asHash(this.b),
-            InputBase.asHash(this.expected_hash),
+            CircuitInputClass.asHash(this.a),
+            CircuitInputClass.asHash(this.b),
+            CircuitInputClass.asHash(this.expected_hash),
         ];
         return result;
     }
@@ -34,17 +35,10 @@ function testLabel(a: Uint, b: Uint, hash: string) {
     return `sha256(${a.toString(16)}, ${b.toString(16)}) == 0x${hash}`;
 }
 
-const circuit = 'sha256';
-const fixture = `${circuit}_fixture`;
-const contractName = `${circuit}_contract`;
+// Note: runner performs setup initialization and ensures compilation/assignment/etc. is run exactly once for all tests
+const runner = new TestRunner('sha256');
 
-describe(circuit, async function () {
-    // DO NOT await here - mocha does not work nicely with async/await in describe
-    // So we're creating a single await'able here, and await in all tests.
-    // Only the first one will actually be awaited, everything else will resolve immediately
-    const setupPromise = prepareTest(circuit, fixture);
-   
-    
+describe(runner.circuitName, async function () {
     describe("valid input", async function () {
         // this produces a 1 in both high and low field elements in sha256 block
         const oneInBothFelts = uint256(255).shln(16*8).add(255);
@@ -74,8 +68,7 @@ describe(circuit, async function () {
                     uint256ToBuffer32(test.b),
                     hash
                 );
-                const compilationArtifacts = await setupPromise;
-                await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: true});
+                await runner.runTest(input, {returnValue: true});
             });
         }
     });
@@ -94,8 +87,7 @@ describe(circuit, async function () {
                     uint256ToBuffer32(test.b),
                     hash
                 );
-                const compilationArtifacts = await setupPromise;
-                await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: false});
+                await runner.runTest(input, {returnValue: false});
             });
         }
     });

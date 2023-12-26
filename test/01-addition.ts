@@ -1,6 +1,7 @@
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
-import {prepareTest, CircuitInput, InputBase, runTest} from "./test_utils";
 import { BigNumberish } from "ethers";
+import { CircuitInput, InputBase } from "../utils/circuit_input";
+import { TestRunner } from "./test_utils";
 
 export class CircuitInputClass extends InputBase implements CircuitInput {
     constructor(
@@ -13,14 +14,14 @@ export class CircuitInputClass extends InputBase implements CircuitInput {
 
     serializePrivateForProofGen(): any[] {
         return [
-            InputBase.asInt(this.a),
-            InputBase.asInt(this.b),
+            CircuitInputClass.asInt(this.a),
+            CircuitInputClass.asInt(this.b),
         ];
     }
 
     serializePublicForProofGen(): any[] {
         return [
-            InputBase.asInt(this.sum),
+            CircuitInputClass.asInt(this.sum),
         ];
     }
 
@@ -31,16 +32,10 @@ export class CircuitInputClass extends InputBase implements CircuitInput {
     }
 }
 
-const circuit = 'addition';
-const fixture = `${circuit}_fixture`;
-const contractName = `${circuit}_contract`;
+// Note: runner performs setup initialization and ensures compilation/assignment/etc. is run exactly once for all tests
+const runner = new TestRunner('addition');
 
-describe(circuit, async function () {
-    // DO NOT await here - mocha does not work nicely with async/await in describe
-    // So we're creating a single await'able here, and await in all tests.
-    // Only the first one will actually be awaited, everything else will resolve immediately
-    const setupPromise = prepareTest(circuit, fixture);
-    
+describe(runner.circuitName, async function () {   
     describe("valid input", async function () {
         const tests = [
             {label: "1 + 2 = 3", input: new CircuitInputClass(1, 2, 3)},
@@ -50,8 +45,7 @@ describe(circuit, async function () {
         for (const test of tests) {
             const {label, input} = test;
             it(label, async function() {
-                const compilationArtifacts = await setupPromise;
-                await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: true});
+                await runner.runTest(input, {returnValue: true});
             });
         }
     });
@@ -64,8 +58,7 @@ describe(circuit, async function () {
         for (const test of tests) {
             const {label, input} = test;
             it(label, async function() {
-                const compilationArtifacts = await setupPromise;
-                await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: false});
+                await runner.runTest(input, {returnValue: false});
             });
         }
     });

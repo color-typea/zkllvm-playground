@@ -1,9 +1,9 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as tmp from 'tmp';
-import { CircuitInput } from '../test/circuit_input';
 import { CmdlineHelper } from './cmdline_helper';
 import { LogLevels } from './logging';
+import { CircuitInput } from './circuit_input';
 
 const CUR_DIR = __dirname;
 const PROJECT_DIR = path.dirname(CUR_DIR);
@@ -11,7 +11,57 @@ const PROJECT_DIR = path.dirname(CUR_DIR);
 const PROOF_GENERATOR = path.join(PROJECT_DIR, '../proof-producer/build/bin/proof-generator', 'proof-generator');
 const ASSIGNER = path.join(PROJECT_DIR, '../zkllvm/build/bin/assigner', 'assigner');
 
-export class ProofGeneratorCLIProofProducer extends CmdlineHelper {
+export interface IProofProducer {
+    generateProof(
+        proofInput: CircuitInput,
+    ):  Promise<Buffer>;
+
+    cleanup(): Promise<void>;
+}
+
+
+abstract class ProofProducerBase extends CmdlineHelper implements IProofProducer {
+    abstract generateProof(
+        proofInput: CircuitInput,
+    ):  Promise<Buffer>;
+
+    abstract cleanup(): Promise<void>;
+
+    _readProofFromFile(proofFile: string): Promise<Buffer> {
+        return fs.readFile(proofFile, 'utf8')
+            .then(data => this._parseProof(data));
+    }
+
+    /**
+     * Proof files are written as 0x-prefixed hex string, so we need to convert it back to "raw bytes"
+     * @param rawData 
+     */
+    protected _parseProof(rawData: string): Buffer {
+        return Buffer.from(rawData.slice(2), 'hex');
+        // return Buffer.from(rawData, 'hex');
+    }
+}
+
+export class PrecomputedProofProducer extends ProofProducerBase {
+    constructor(
+        private precomputedProofFile: string
+    ) {
+        super(LogLevels.PROOF_GENERATOR);
+    }
+
+    generateProof(
+        proofInput: CircuitInput,
+    ):  Promise<Buffer> {
+        this.logger.info(`Reading proof from precomputed file ${this.precomputedProofFile}`);
+        return this._readProofFromFile(this.precomputedProofFile);
+    }
+
+    cleanup(): Promise<void> {
+        return Promise.resolve();
+    }
+}
+
+export class ProofGeneratorCLIProofProducer extends ProofProducerBase {
 
     private files: Array<string> = [];
 
@@ -19,28 +69,9 @@ export class ProofGeneratorCLIProofProducer extends CmdlineHelper {
         private circuit_bytecode: string,
         private proofProducerBin: string = PROOF_GENERATOR,
         private assignerBin: string = ASSIGNER,
+        private skipVerification: boolean = true
     ) {
         super(LogLevels.PROOF_GENERATOR);
-    }
-
-    private genRunArgsV2(crct: string, assignmentTable: string, outputFile: string, skipVerification: boolean): string[] {
-        return [
-            ...this.flattenNamedArgs({
-                '--proof': outputFile,
-                '--circuit': crct,
-                '--assignment-table': assignmentTable,
-            }),
-            skipVerification ? '--skip-verification' : ''
-        ];
-    }
-
-    /**
-     * Proof files are written as 0x-prefixed hex string, so we need to convert it back to "raw bytes"
-     * @param rawData 
-     */
-    private readProofFile(rawData: string): Buffer {
-        return Buffer.from(rawData.slice(2), 'hex');
-        // return Buffer.from(rawData, 'hex');
     }
 
     _createTempFile(prefix: string, postfix: string): Promise<string> {
@@ -53,6 +84,17 @@ export class ProofGeneratorCLIProofProducer extends CmdlineHelper {
                 resolve(path);
             });
         });
+    }
+
+    private genRunArgsV2(crct: string, assignmentTable: string, outputFile: string): string[] {
+        return [
+            ...this.flattenNamedArgs({
+                '--proof': outputFile,
+                '--circuit': crct,
+                '--assignment-table': assignmentTable,
+            }),
+            this.skipVerification ? '--skip-verification' : ''
+        ];
     }
 
     _genRunAssignerArgs(
@@ -96,17 +138,13 @@ export class ProofGeneratorCLIProofProducer extends CmdlineHelper {
 
     async generateProof(
         proofInput: CircuitInput,
-        skipVerification: boolean = false,
-        inputFileName?: string,
-        proofFileName?: string,
     ): Promise<Buffer> {
-        const proofFile = proofFileName ?? (await this._createTempFile('proof', 'bin'));
+        const proofFile = await this._createTempFile('proof', 'bin');
         const { crct, assignmentTable } = await this._runAssigner(proofInput);
-        const runArgs = this.genRunArgsV2(crct, assignmentTable, proofFile, skipVerification);
+        const runArgs = this.genRunArgsV2(crct, assignmentTable, proofFile);
         this.logger.info('Invoking proof generator');
         return this.runCommand(this.proofProducerBin, runArgs)
-            .then(async () => await fs.readFile(proofFile, 'utf8'))
-            .then(data => this.readProofFile(data))
+            .then(async () => await this._readProofFromFile(proofFile))
             .catch((err) => {
                 throw new Error(`Failed to run proof generator ${err}`);
             });

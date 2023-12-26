@@ -48,8 +48,8 @@ type AssignerInput = {
 }
 
 export type CompilationArtifacts = {
-    compiledCicuit: string,
-    compiledCicuitNoStdlib: string,
+    compiledCircuit: string,
+    compiledCircuitNoStdlib: string,
     assingmentTable: string,
     constraints: string,
 
@@ -81,8 +81,8 @@ class CircuitArtifactsFactory extends CmdlineHelper {
         };
 
         this.compilationArtifacts = {
-            compiledCicuit: path.join(this.folders.development, `${this.circuitName}.ll`),
-            compiledCicuitNoStdlib: path.join(this.folders.development, `${this.circuitName}_no_stdlib.ll`),
+            compiledCircuit: path.join(this.folders.development, `${this.circuitName}.ll`),
+            compiledCircuitNoStdlib: path.join(this.folders.development, `${this.circuitName}_no_stdlib.ll`),
             assingmentTable: path.join(this.folders.development, `${this.circuitName}.tbl`),
             constraints: path.join(this.folders.development, `${this.circuitName}.crct`),
 
@@ -143,7 +143,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
             "-emit-llvm", "-O1", "-S", "-Xclang", "-fpreserve-vec3-type", "-Werror=unknown-attributes",
             ...this.flattenNamedArgs({
                 "-target": "assigner",
-                "-o": this.compilationArtifacts.compiledCicuitNoStdlib,
+                "-o": this.compilationArtifacts.compiledCircuitNoStdlib,
             }),
             this.sources.circuit
         ];
@@ -164,8 +164,8 @@ class CircuitArtifactsFactory extends CmdlineHelper {
         this.logger.info(`[${this.circuitName}]: Linking circuit`);
         const args = [
             "-S",
-            ...this.flattenNamedArgs({"-o": this.compilationArtifacts.compiledCicuit}),
-            this.compilationArtifacts.compiledCicuitNoStdlib,
+            ...this.flattenNamedArgs({"-o": this.compilationArtifacts.compiledCircuit}),
+            this.compilationArtifacts.compiledCircuitNoStdlib,
             ...this.linkDependencies()
         ];
         this.logger.debug(`Linking ${this.circuitName}`);
@@ -175,7 +175,7 @@ class CircuitArtifactsFactory extends CmdlineHelper {
     private async assignCircuit(): Promise<void> {
         this.logger.info(`[${this.circuitName}]: Assigning circuit`);
         const argsObj: AssignerInput = {
-            "-b": this.compilationArtifacts.compiledCicuit,
+            "-b": this.compilationArtifacts.compiledCircuit,
             "-i": this.sources.publicInput,
             "-t": this.compilationArtifacts.assingmentTable,
             "-c": this.compilationArtifacts.constraints,
@@ -250,15 +250,20 @@ class CircuitArtifactsFactory extends CmdlineHelper {
     }
 }
 
-const AllCircuits = new Map([
+type CircuitNames = 'playground' | 'addition' | 'multiplication' | 'sha256' | 'endianness' | 'byte_packing' | 'conditional_sum';
+
+const AllCircuits: Map<CircuitNames, CircuitArtifactsFactory> = new Map([
     ['playground', new CircuitArtifactsFactory("00-playground", "playground")],
     ['addition', new CircuitArtifactsFactory("01-addition", "addition")],
     ['multiplication', new CircuitArtifactsFactory("02-multiplication", "multiplication")],
     ['sha256', new CircuitArtifactsFactory("03-sha256", "sha256")],
-    ['byte_packing', new CircuitArtifactsFactory("04-byte_packing", "byte_packing")],
+    ['endianness', new CircuitArtifactsFactory("04-endianness", "endianness")],
+    ['byte_packing', new CircuitArtifactsFactory("05-byte_packing", "byte_packing")],
+    ['conditional_sum', new CircuitArtifactsFactory("06-conditional_sum", "conditional_sum")],
 ]);
 
 export {
     AllCircuits,
+    CircuitNames,
     CircuitArtifactsFactory
 }

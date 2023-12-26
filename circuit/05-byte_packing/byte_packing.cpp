@@ -8,8 +8,8 @@ using hash_type = hashes::sha2<256>;
 using block_type = hash_type::block_type;
 using field_type = algebra::curves::pallas::base_field_type;
 
-constexpr bool BYTE_ORDER_MSB = true;
-constexpr bool BYTE_ORDER_LSB = false;
+constexpr bool BIT_ORDER_MSB = true;
+constexpr bool BIT_ORDER_LSB = false;
 
 bool is_same(block_type block0, block_type block1){
     return block0[0] == block1[0] && block0[1] == block1[1];
@@ -41,10 +41,20 @@ uint64_t_le toLittleEndian(uint64_t_be val) {
 
 field_type::value_type toSha256Field(uint64_t_le lower, uint64_t_le higher) {
     std::array<field_type::value_type, 128> decomposed_block;
-    __builtin_assigner_bit_decomposition(decomposed_block.data()     , 64, higher, BYTE_ORDER_LSB);
-    __builtin_assigner_bit_decomposition(decomposed_block.data() + 64, 64, lower, BYTE_ORDER_LSB);
-    return __builtin_assigner_bit_composition(decomposed_block.data(), 128, BYTE_ORDER_LSB);
+    __builtin_assigner_bit_decomposition(decomposed_block.data()     , 64, lower, BIT_ORDER_LSB);
+    __builtin_assigner_bit_decomposition(decomposed_block.data() + 64, 64, higher, BIT_ORDER_LSB);
+    return __builtin_assigner_bit_composition(decomposed_block.data(), 128, BIT_ORDER_LSB);
 }
+
+// uint64_t shift32 = (1 << 32);
+
+// field_type::value_type toSha256Field(uint64_t_le lower, uint64_t_le higher) {
+//     field_type::value_type result = higher; 
+//     result *= shift32; 
+//     result *= shift32; 
+//     result += lower; 
+//     return result;
+// }
 
 block_type pack_four(uint64_t_be val1, uint64_t_be val2, uint64_t_be val3, uint64_t_be val4) {
     return {

@@ -1,7 +1,8 @@
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
-import {prepareTest, CircuitInput, InputBase, runTest, packUint64IntoSha256} from "./test_utils";
+import { packUint64IntoSha256, TestRunner} from "./test_utils";
 import { BigNumberish } from "ethers";
 import { Uint, uint64 } from "solidity-math";
+import { CircuitInput, InputBase } from "../utils/circuit_input";
 
 class CircuitInputClass extends InputBase implements CircuitInput {
     constructor(
@@ -16,16 +17,16 @@ class CircuitInputClass extends InputBase implements CircuitInput {
 
     serializePublicForProofGen(): any[] {
         return [
-            InputBase.asHash(this.expected_hash)
+            CircuitInputClass.asHash(this.expected_hash)
         ];
     }
 
     serializePrivateForProofGen(): any[] {
         const result = [
-            InputBase.asInt(this.a),
-            InputBase.asInt(this.b),
-            InputBase.asInt(this.c),
-            InputBase.asInt(this.d)
+            CircuitInputClass.asInt(this.a),
+            CircuitInputClass.asInt(this.b),
+            CircuitInputClass.asInt(this.c),
+            CircuitInputClass.asInt(this.d)
         ];
         return result;
     }
@@ -35,20 +36,14 @@ class CircuitInputClass extends InputBase implements CircuitInput {
     }
 }
 
-function testLabel(a: Uint, b: Uint, c: Uint, d: Uint, hash: string) {
-    return `pack(${a.toString(16)}, ${b.toString(16)}, ${c.toString(16)}, ${d.toString(16)}) == 0x${hash}`;
+function testLabel(a: Uint, b: Uint, c: Uint, d: Uint, operand: string, hash: string) {
+    return `pack(${a.toString(16)}, ${b.toString(16)}, ${c.toString(16)}, ${d.toString(16)}) ${operand} 0x${hash}`;
 }
 
-const circuit = 'byte_packing';
-const fixture = `${circuit}_fixture`;
-const contractName = `${circuit}_contract`;
+// Note: runner performs setup initialization and ensures compilation/assignment/etc. is run exactly once for all tests
+const runner = new TestRunner('byte_packing')
 
-describe(circuit, async function () {
-    // DO NOT await here - mocha does not work nicely with async/await in describe
-    // So we're creating a single await'able here, and await in all tests.
-    // Only the first one will actually be awaited, everything else will resolve immediately
-    const setupPromise = prepareTest(circuit, fixture);
-        
+describe(runner.circuitName, async function () {
     describe("valid input", async function () {
         const tests = [
             [1,2,3,4].map(v => uint64(v)),
@@ -64,14 +59,13 @@ describe(circuit, async function () {
         for (const test of tests) {
             const [a, b, c, d] = test;
             const expected_sha256 = packUint64IntoSha256(a, b, c, d);
-            const label = testLabel(a, b, c, d, expected_sha256.toString('hex'));
+            const label = testLabel(a, b, c, d, "==", expected_sha256.toString('hex'));
             it(label, async () => {
                 const input = new CircuitInputClass(
                     a, b, c, d,
                     expected_sha256
                 );
-                const compilationArtifacts = await setupPromise;
-                await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: true});
+                await runner.runTest(input, {returnValue: true});
             });
         }
     });
@@ -91,14 +85,13 @@ describe(circuit, async function () {
         for (const test of tests) {
             const [a, b, c, d] = test;
             const expected_sha256 = packUint64IntoSha256(uint64(0), uint64(0), uint64(0), uint64(1));
-            const label = testLabel(a, b, c, d, expected_sha256.toString('hex'));
+            const label = testLabel(a, b, c, d, "!=", expected_sha256.toString('hex'));
             it(label, async () => {
                 const input = new CircuitInputClass(
                     a, b, c, d,
                     expected_sha256
                 );
-                const compilationArtifacts = await setupPromise;
-                await runTest(contractName, compilationArtifacts.compiledCicuit, input, {returnValue: false});
+                await runner.runTest(input, {returnValue: false});
             });
         }
     });

@@ -60,7 +60,7 @@ describe(runner.circuitName, async function () {
                 expect(inverseEndianness(valUint).toString(16)).to.equal(reversedUint.toString(16));
                 const input = new CircuitInputClass(valUint, reversedUint);
                
-                await runner.runTest(input, {returnValue: true});
+                await runner.runTest(input, {returnValue: true, printEvents: true});
             });
         }
     });
@@ -76,12 +76,11 @@ describe(runner.circuitName, async function () {
             const [value, reversed] = test;
             const label = `changeEndianness(${value}) == ${reversed}`
             it(label, async () => {
-                //sanity check
                 const valUint = uint64(new BN(value, 'hex', 'le'));
                 const reversedUint = uint64(new BN(reversed, 'hex', 'le'));
-                expect(inverseEndianness(valUint)).to.equal(reversedUint);
+                expect(inverseEndianness(valUint)).to.not.equal(reversedUint);
                 const input = new CircuitInputClass(valUint, reversedUint);
-                
+
                 await runner.runTest(input, {returnValue: false});
             });
         }

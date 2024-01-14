@@ -55,7 +55,7 @@ const runner = new TestRunner('playground', normalProducer);
 describe(runner.circuitName, async function () {       
     describe("valid input", async function () {
         it("runs successfully", async () => {
-            const [value, shift, expected ] = [1, 2, 4];
+            const [value, shift, expected ] = [10, 2, 40];
             expect(uint64(value).shln(shift).toString()).to.equal(uint64(expected).toString());
             const input = new CircuitInputClass(uint64(value), uint64(shift), uint64(expected));
             await runner.runTest(input, {returnValue: true});

@@ -41,13 +41,12 @@ const runner = new TestRunner('sha256');
 describe(runner.circuitName, async function () {
     describe("valid input", async function () {
         // this produces a 1 in both high and low field elements in sha256 block
-        const oneInBothFelts = uint256(255).shln(16*8).add(255);
+        const oneInBothFieldElements = uint256(255).shln(16*8).add(255);
         const tests = [
             {a: uint256(1), b: uint256(0)},
-            {a: oneInBothFelts, b: uint256(0)},
+            {a: oneInBothFieldElements, b: uint256(0)},
             {a: uint256(1), b: uint256(1)},
-            {a: oneInBothFelts, b: uint256(1)},
-
+            {a: oneInBothFieldElements, b: uint256(1)},
             {
                 a: uint256("16507339364505767685707796512181655236330077571073020801870589322541997706161"),
                 b: uint256(0)

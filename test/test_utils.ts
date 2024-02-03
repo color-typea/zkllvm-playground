@@ -1,9 +1,9 @@
 import * as hre from 'hardhat';
 import { Uint, uint128 } from "solidity-math";
-import {expect} from "chai";
+import {expect, AssertionError } from "chai";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { createHash } from 'crypto';
-import { TransactionResponse } from 'ethers';
+import { LogDescription, TransactionReceipt, TransactionResponse } from 'ethers';
 
 
 import { IProofProducer, ProofGeneratorCLIProofProducer } from '../utils/proof_gen';
@@ -69,21 +69,42 @@ export class TestRunner {
         try {
             LOGGER.debug("Proover payload", JSON.stringify({private: circuit_input.serializePrivateForProofGen(), public: circuit_input.serializePublicForProofGen()}));
             LOGGER.debug("Verifier public input", JSON.stringify(circuit_input.serializePublicForContract()));
-            const Contract = await hre.ethers.getContract<Contract>(this.contract);
-            const ModularVerifier = await hre.ethers.getContract<Contract>(this.modularVerifier);
+            const contract = await hre.ethers.getContract<Contract>(this.contract);
+            const modularVerifier = await hre.ethers.getContract<Contract>(this.modularVerifier);
             
             const zkProof = await proofProducer.generateProof(circuit_input);
             LOGGER.info("Submitting proof");
-            const tx = submitProof(Contract, circuit_input, zkProof);
+            const tx = submitProof(contract, circuit_input, zkProof);
             if (reverts) {
                 await expect(tx).to.be.reverted;
             } else {
-                await expect(tx).to.emit(ModularVerifier, 'VerificationResult').withArgs(returnValue);
+                try {
+                    await expect(tx).to.emit(modularVerifier, 'VerificationResult').withArgs(returnValue);
+                } catch (e) {
+                    if (e instanceof AssertionError) {
+                        const receipt = await (await tx).wait();
+                        const events = parseEvents(receipt, modularVerifier).map(event => `${event.name}(${event.args})`);
+                        throw new AssertionError(`${e.message}; Emitted: ${events.join(", ")}`);
+                    } else {
+                        throw e;
+                    }
+                }
             }
         } finally {
             proofProducer.cleanup();
         }
     }
+}
+
+function parseEvents(receipt: TransactionReceipt | null, ownerContract: Contract): ReadonlyArray<LogDescription> {
+    const events: Array<LogDescription> = [];
+    for (const log of receipt?.logs ?? []) {
+        const parsedEvent = ownerContract.interface.parseLog(log);
+        if (parsedEvent != null) {
+            events.push(parsedEvent);
+        }
+    }
+    return events;
 }
 
 export function uint256ToBuffer32(value: Uint, endianness: 'be' | 'le' = 'le'): Buffer {

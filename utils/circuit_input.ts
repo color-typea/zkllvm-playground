@@ -1,10 +1,15 @@
 import { BigNumberish } from "ethers";
+import BN from "bn.js";
 import { Uint, uint128 } from "solidity-math";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 export abstract class InputBase {
-    static asInt(val: number | Uint): { int: string } {
-        return { int: val.toString() };
+    static asInt(val: number | Uint): { int: number | string } {
+        if (typeof(val) === 'number') {
+            return { int: val }
+        } else {
+            return { int: val.toString() };
+        }
     }
 
     static asArray<T, TOut>(val: T[], mapper: (item: T) => TOut = identity): { array: TOut[] } {

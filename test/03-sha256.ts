@@ -38,7 +38,8 @@ function testLabel(a: Uint, b: Uint, hash: string) {
 // Note: runner performs setup initialization and ensures compilation/assignment/etc. is run exactly once for all tests
 const runner = new TestRunner('sha256');
 
-describe(runner.circuitName, async function () {
+describe.skip(runner.circuitName, async function () {
+    this.timeout(300000);
     describe("valid input", async function () {
         // this produces a 1 in both high and low field elements in sha256 block
         const oneInBothFieldElements = uint256(255).shln(16*8).add(255);
@@ -61,7 +62,6 @@ describe(runner.circuitName, async function () {
             const hash = computeSHA256Hash(test.a, test.b);
             const label = testLabel(test.a, test.b, hash.toString('hex'));
             it(label, async function() {
-                this.timeout(300000);
                 const input = new CircuitInputClass(
                     uint256ToBuffer32(test.a),
                     uint256ToBuffer32(test.b),

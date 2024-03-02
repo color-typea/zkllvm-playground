@@ -8,13 +8,25 @@ export const LogLevel = {
 }
 
 function empty() {}
+function identity<T>(x: T): T { return x; }
 
-export function getLogger(logLevel: number) {
+type LogFunc = (message?: any, ...optionalParams: any[]) => void
+
+function injectMarker(marker: string): (arg: LogFunc) => LogFunc {
+    return (logFunc: LogFunc) => {
+        return (message?: any, ...optionalParams: any[]) => {
+            logFunc(`[${marker}] ${message}`, ...optionalParams);
+        }
+    }
+}
+
+export function getLogger(logLevel: number, loggerName: string | null = null) {
+    const wrapper = loggerName != null ? injectMarker(loggerName) : identity;
     return {
-        debug: logLevel <= LogLevel.DEBUG ? console.debug : empty,
-        info: logLevel <= LogLevel.INFO ? console.info : empty,
-        warn: logLevel <= LogLevel.WARNING ? console.warn : empty,
-        error: logLevel <= LogLevel.ERROR ? console.error : empty,
+        debug: logLevel <= LogLevel.DEBUG ? wrapper(console.debug) : empty,
+        info: logLevel <= LogLevel.INFO ? wrapper(console.info) : empty,
+        warn: logLevel <= LogLevel.WARNING ? wrapper(console.warn) : empty,
+        error: logLevel <= LogLevel.ERROR ? wrapper(console.error) : empty,
     }
 }
 

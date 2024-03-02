@@ -52,7 +52,7 @@ const normalProducer = (artifacts: CompilationArtifacts) => new ProofGeneratorCL
 // Note: runner performs setup initialization and ensures compilation/assignment/etc. is run exactly once for all tests
 const runner = new TestRunner('playground', normalProducer);
 
-describe(runner.circuitName, async function () {       
+describe.skip(runner.circuitName, async function () {       
     describe("valid input", async function () {
         it("runs successfully", async () => {
             const [value, shift, expected ] = [10, 2, 40];

@@ -60,7 +60,7 @@ describe(runner.circuitName, async function () {
                 expect(inverseEndianness(valUint).toString(16)).to.equal(reversedUint.toString(16));
                 const input = new CircuitInputClass(valUint, reversedUint);
                
-                await runner.runTest(input, {returnValue: true, printEvents: true});
+                await runner.runTest(input, {returnValue: true});
             });
         }
     });

@@ -18,8 +18,8 @@ export class CmdlineHelper {
     protected logger;
     private supressSubcommandOutput: boolean;
 
-    constructor(logLevel: number) {
-        this.logger = getLogger(logLevel);
+    constructor(logLevel: number, logMarker: string | null = null) {
+        this.logger = getLogger(logLevel, logMarker);
         this.supressSubcommandOutput = logLevel >= LogLevel.INFO;
     }
 

@@ -40,7 +40,7 @@ export class PrecomputedProofProducer extends ProofProducerBase {
     constructor(
         private precomputedProofFile: string
     ) {
-        super(LogLevels.PROOF_GENERATOR);
+        super(LogLevels.PROOF_GENERATOR, "proof-gen");
     }
 
     generateProof(
@@ -65,10 +65,10 @@ export class ProofGeneratorCLIProofProducer extends ProofProducerBase {
         private assignerBin: string = zkllvm_pipeline.ASSIGNER,
         private skipVerification: boolean = true
     ) {
-        super(LogLevels.PROOF_GENERATOR);
+        super(LogLevels.PROOF_GENERATOR, "proof-gen");
     }
 
-    _createTempFile(prefix: string, postfix: string): Promise<string> {
+    private _createTempFile(prefix: string, postfix: string): Promise<string> {
         return new Promise((resolve, reject) => {
             tmp.file({ prefix, postfix }, (err, path, fd) => {
                 if (err) {
@@ -86,12 +86,13 @@ export class ProofGeneratorCLIProofProducer extends ProofProducerBase {
                 '--proof': outputFile,
                 '--circuit': crct,
                 '--assignment-table': assignmentTable,
+                // "--expand-factor":"0",
             }),
             this.skipVerification ? '--skip-verification' : ''
         ];
     }
 
-    _genRunAssignerArgs(
+    private _genRunAssignerArgs(
         publicInputFileName: string,
         privateInputFileName: string,
         crctFileName: string,
@@ -107,15 +108,26 @@ export class ProofGeneratorCLIProofProducer extends ProofProducerBase {
         });
     }
 
-    async _runAssigner(
+    private _serialize(obj: any): string {
+        const result = JSON.stringify(obj);
+        // Quirk: assigner requires numbers being just numbers in JSON, even if they don't fit into JS numeric type
+        // I.e. {"int": "1"} causes "public input does not match circuit signature"
+        // Fixing it in a "hacky" way via regex; "proper" way via `toJSON` or replacer function won't work (as we'd still retunr a string)
+        return result.replaceAll(
+            /{"int": ?"(\d+)"}/g,
+            '{"int":$1}',
+        );
+    }
+
+    private async _runAssigner(
         proofInput: CircuitInput,
     ): Promise<{ crct: string, assignmentTable: string }> {
         const publicInputFile = await this._createTempFile('input', '_public.json');
-        const privateInputFile = await this._createTempFile('input', '_public.json');
+        const privateInputFile = await this._createTempFile('input', '_private.json');
         const crct = await this._createTempFile('circuit', 'crct');
         const tbl = await this._createTempFile('circuit', 'tbl');
-        const publicInput = JSON.stringify(proofInput.serializePublicForProofGen());
-        const privateInput = JSON.stringify(proofInput.serializePrivateForProofGen());
+        const publicInput = this._serialize(proofInput.serializePublicForProofGen());
+        const privateInput = this._serialize(proofInput.serializePrivateForProofGen());
         this.logger.debug("Public input", publicInput);
         this.logger.debug("Private input", privateInput);
         await fs.writeFile(publicInputFile, publicInput);
@@ -130,7 +142,7 @@ export class ProofGeneratorCLIProofProducer extends ProofProducerBase {
             });
     }
 
-    async generateProof(
+    public async generateProof(
         proofInput: CircuitInput,
     ): Promise<Buffer> {
         const proofFile = await this._createTempFile('proof', 'bin');
@@ -144,7 +156,7 @@ export class ProofGeneratorCLIProofProducer extends ProofProducerBase {
             });
     }
 
-    async cleanup(): Promise<void> {
+    public async cleanup(): Promise<void> {
         await Promise.all(this.files.map(file => fs.unlink(file)));
         this.files = [];
     }

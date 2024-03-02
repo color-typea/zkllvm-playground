@@ -14,7 +14,7 @@ import { CircuitInput } from '../utils/circuit_input';
 
 type TestOptions = { returnValue?: boolean, reverts?: boolean };
 
-const LOGGER = getLogger(LogLevels.CONTRACT_INTERACTION);
+const LOGGER = getLogger(LogLevels.CONTRACT_INTERACTION, "contract");
 
 export async function submitProof(contract: Contract, input: CircuitInput, zkProof: Buffer): Promise<TransactionResponse> {
     const proof = {
@@ -91,7 +91,7 @@ export class TestRunner {
                 }
             }
         } finally {
-            proofProducer.cleanup();
+            // proofProducer.cleanup();
         }
     }
 }
